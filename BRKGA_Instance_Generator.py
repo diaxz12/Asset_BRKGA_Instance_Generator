@@ -16,10 +16,10 @@ import matplotlib.pyplot as plt
 import math
 
 #diretorio onde queremos colocar as instancias
-PATHInstancia='/Users/LuisDias/Desktop/Doutoramento DEGI/A-Papers LUIS DIAS/3_paper/3 - Development/PythonCode/Instance_Generator/'
+PATHInstancia='/Users/LuisDias/Desktop/Doutoramento DEGI/A-Papers LUIS DIAS/3_paper/5 - Resultados/Computational_Runs_Asset_BRKGA'
 
 #parametros do gerador de instancias
-NumeroInstancias = 1 #numero de instancias a gerar por cada classe de instancia (N[X])
+NumeroInstancias = 3 #numero de instancias a gerar por cada classe de instancia (N[X])
 AssetNumberInstances=np.array([30]) #Lista do numero de ativos
 TimeWindow = np.array([5,10,20]) #Lista de Planning horizons
 MaintenanceTypes = 3 #Tipos de manutenção a considerar
@@ -33,7 +33,8 @@ RiskFreeRatePlus = 0.08 #Used rate to calculate the net present value of the ove
 Penalty_multiplier = [["LowRisk",2],["HighRisk",10]] #Relação de proporcionalidade entre o custo da falha e o custo de substituição para os dois níveis de risco (Custo Falha = Penalty_multiplier * Custo_substituicao)
 
 #Distribuicao do RUL
-InstanceFamily = ["Clustered", "Concentrated", "Random"] #Caracterista da distribuição da condição inicial dos ativos
+#InstanceFamily = ["Clustered", "Concentrated", "Random"] #Caracterista da distribuição da condição inicial dos ativos
+InstanceFamily = ["Clustered"] #Caracterista da distribuição da condição inicial dos ativos
 ClusteredAssetsPortion = 0.5 #Indica a proporção de ativos que se encontram no cluster de má condição
 MinimumInitialConditionMultiplier = 0.10 #Condição mínima que é gerada para cada ativo (em proporção face a condição máxima)
 GoodConditionMultiplier = 0.70 #Condição mínima que é gerada para cada ativo para ser considerado como um ativo em boa condição (em proporção face a condição máxima)
@@ -186,10 +187,10 @@ def GenerateUncertaintyMatrix(TimeWindowIncrement,UncertaintyIncrement,AssetMaxH
     return MatrizParametros
 
 # função que permite criar o ficheiro de texto
-def criar_instancia_original_problem(InstancePath, InstanceType, AssetNumber, TimeWindow, Uncertainty, FailureRisk, Maintenance, MaintenanceTypes, RiskFreeRateMinus, RiskFreeRatePlus, SampleSize, InitialHealth, DegradationMatrix, CostReplacingAsset, CostFailure, CostAction, MaintenanceEffect, AssetAssetMaxHealth):
+def criar_instancia_original_problem(InstancePath, InstanceID, AssetNumber, TimeWindow, Uncertainty, FailureRisk, Maintenance, MaintenanceTypes, RiskFreeRateMinus, RiskFreeRatePlus, SampleSize, InitialHealth, DegradationMatrix, CostReplacingAsset, CostFailure, CostAction, MaintenanceEffect, AssetAssetMaxHealth):
 
     # Abrir instancias
-    Instance = open(InstancePath + "/" + InstanceType + "/" + "Instance_N" + str(AssetNumber) + "TW" + str(TimeWindow) + Uncertainty + FailureRisk + Maintenance + ".txt", "w")
+    Instance = open(InstancePath + "/" + "Instance_N" + str(AssetNumber) + "TW" + str(TimeWindow) + Uncertainty + FailureRisk + Maintenance + "_" + str(InstanceID) + ".txt", "w")
 
     # AssetNumber
     Instance.write("Asset Number\n" + str(AssetNumber) + "\n\n")
@@ -432,9 +433,6 @@ for Family in InstanceFamily: #Distribuição do RUL dos ativos
     # Familia de instancia a ser gerada
     print(Family)
 
-    # contador para identificar o numero da instancia
-    InstanceGenerationOrder = 0
-
     # Counter que permite ajustar a incerteza para um TimeWindow em especifico
     UncertaintyPeriodCount = 0
 
@@ -449,6 +447,10 @@ for Family in InstanceFamily: #Distribuição do RUL dos ativos
             for Uncertainty in ["LowUnc","HighUnc"]: #Niveis de incerteza
                 for FailureRisk in ["LowRisk","HighRisk"]: #Niveis de risco
                     for Maintenance in ["LowImp", "HighImp"]: #Niveis de impacto da manutenção
+
+                        # contador para identificar o numero da instancia
+                        InstanceGenerationOrder = 0
+
                         for contador in range(0,NumeroInstancias):
 
                             #Obter instancia que cumpre os requesitos
@@ -563,6 +565,12 @@ for Family in InstanceFamily: #Distribuição do RUL dos ativos
                             #A instancia é guardade sempre que não for encontrado nenhum problema com os parâmetros que foram gerados
                             if VerificarInstancia == True:
 
+                                # Atualizar o path da instancia para a pasta respetiva para qual se está a gerar a instancia
+                                FinalPATHInstancia = PATHInstancia + "/" + Family + "_" + Uncertainty + FailureRisk + Maintenance + "/data"
+
+                                # Mostrar o path completo para a instancia gerada
+                                print("Folder path = " + FinalPATHInstancia)
+
                                 # Create instance para o problema original
-                                criar_instancia_original_problem(PATHInstancia, Family, AssetNumber, PlanningPeriods, Uncertainty, FailureRisk, Maintenance, MaintenanceTypes, RiskFreeRateMinus, RiskFreeRatePlus, SampleSize,
+                                criar_instancia_original_problem(FinalPATHInstancia, InstanceGenerationOrder, AssetNumber, PlanningPeriods, Uncertainty, FailureRisk, Maintenance, MaintenanceTypes, RiskFreeRateMinus, RiskFreeRatePlus, SampleSize,
                                                                  InitialHealth, DegradationMatrix, CostReplacingAsset, CostFailure, CostAction, MaintenanceEffect, AssetMaxHealth)
