@@ -20,7 +20,7 @@ PATHInstancia='/Users/LuisDias/Desktop/Doutoramento DEGI/A-Papers LUIS DIAS/3_pa
 
 #parametros do gerador de instancias
 NumeroInstancias = 1 #numero de instancias a gerar por cada classe de instancia (N[X])
-AssetNumberInstances=np.array([10]) #Lista do numero de ativos
+AssetNumberInstances=np.array([30]) #Lista do numero de ativos
 TimeWindow = np.array([5,10,20]) #Lista de Planning horizons
 MaintenanceTypes = 3 #Tipos de manutenção a considerar
 AssetMaxHealth = 100 #Condição máxima dos ativos
@@ -189,7 +189,7 @@ def GenerateUncertaintyMatrix(TimeWindowIncrement,UncertaintyIncrement,AssetMaxH
 def criar_instancia_original_problem(InstancePath, InstanceType, AssetNumber, TimeWindow, Uncertainty, FailureRisk, Maintenance, MaintenanceTypes, RiskFreeRateMinus, RiskFreeRatePlus, SampleSize, InitialHealth, DegradationMatrix, CostReplacingAsset, CostFailure, CostAction, MaintenanceEffect, AssetAssetMaxHealth):
 
     # Abrir instancias
-    Instance = open(InstancePath + "/" + InstanceType + "/" + "Instance_N" + str(AssetNumber) + "TW" + str(TimeWindow) + Uncertainty + FailureRisk + Maintenance + ".txt", "x")
+    Instance = open(InstancePath + "/" + InstanceType + "/" + "Instance_N" + str(AssetNumber) + "TW" + str(TimeWindow) + Uncertainty + FailureRisk + Maintenance + ".txt", "w")
 
     # AssetNumber
     Instance.write("Asset Number\n" + str(AssetNumber) + "\n\n")
@@ -361,31 +361,61 @@ def verificador_de_instancias(AssetNumber, PlanningPeriods, InitialHealth, Famil
         ComputedFailuresPerPlanningHorizon = PlanningPeriods / BestAssetRUL
 
         #verify the number of failure per planning horizon
-        if ComputedFailuresPerPlanningHorizon > FailuresPerPlanningHorizon:
+        if ComputedFailuresPerPlanningHorizon > FailuresPerPlanningHorizon * 1.15: #tem que se dar uma margem pois existe casos que é suposto ser um bocadinho maior
             print("Asset" + str(i) + " has an average of failures above the defined parameter of FailuresPerPlanningHorizon= " + str(FailuresPerPlanningHorizon))
 
             #Sempre que um critério de verificação for verificado a instancia é negada
             InstanceValid = False
 
+    #Verificar se os limites dos custos de substituição são respeitados
+    for i in range(0, AssetNumber):
+
+        if CostReplacingAsset[i] > MaxReplacementCost:
+            print("Asset" + str(i) + "has a planned replacement cost above the specified maximum value")
+
+        if CostReplacingAsset[i] < MinReplacementCost:
+            print("Asset" + str(i) + "has a planned replacement cost bellow the specified minimum value")
+
+    #Verificar se os limites dos custos de substituição por falha são respeitados
+    for i in range(0, AssetNumber):
+
+        if CostFailure[i] != CostReplacingAsset[i] * Penalty_multiplier[0][1] and CostFailure[i] != CostReplacingAsset[i] * Penalty_multiplier[1][1]:
+            print("Asset" + str(i) + "has a unplanned replacement cost which does not respects the imposed proportionality in the Penalty_multiplier variable")
+
     #Verificar o custo beneficio das ações de manutenção face as ações de substituição
     for i in range(0, AssetNumber):
         for j in range(0, MaintenanceTypes):
 
-            MaintenanceActionUnitaryCost = AssetDegradation[i] * MaintenanceEffect[i, j] / CostAction[i, j]
-            ReplacementUnitaryCost = AssetMaxHealth / CostReplacingAsset[i]
-            WorstMaintenanceActionUnitaryCost = AssetMaxHealth / (CostReplacingAsset[i] * UnitCostImprovementMultiplier)
+            MaintenanceActionUnitaryCost = round((AssetDegradation[i] * MaintenanceEffect[i, j]) / CostAction[i, j], 4)
+            ReplacementUnitaryCost = round(AssetMaxHealth / CostReplacingAsset[i], 4)
+            WorstMaintenanceActionUnitaryCost = round(AssetMaxHealth / (CostReplacingAsset[i] * UnitCostImprovementMultiplier), 4)
 
-            if MaintenanceActionUnitaryCost <  ReplacementUnitaryCost:
+            if MaintenanceActionUnitaryCost >  ReplacementUnitaryCost:
                 print("Asset" + str(i) + " has a unitary Maintenance cost of " + str(MaintenanceActionUnitaryCost) + " that is better than the unitary cost of an asset replacement " + str(ReplacementUnitaryCost))
 
                 # Sempre que um critério de verificação for verificado a instancia é negada
                 InstanceValid = False
 
-            if MaintenanceActionUnitaryCost >  WorstMaintenanceActionUnitaryCost:
+            if MaintenanceActionUnitaryCost <  WorstMaintenanceActionUnitaryCost:
                 print("Asset" + str(i) + " has a unitary Maintenance cost of " + str(MaintenanceActionUnitaryCost) + " that is above the specified maximum unitary cost of an asset replacement " + str(WorstMaintenanceActionUnitaryCost))
 
                 # Sempre que um critério de verificação for verificado a instancia é negada
                 InstanceValid = False
+
+    #Verificar se a degradação média gerada respeita as caracteristicas impostas
+    for i in range(0, AssetNumber):
+        if round(PlanningPeriods / (AssetMaxHealth / AssetDegradation[i]),0) >  FailuresPerPlanningHorizon:
+            print("Asset" + str(i) + "has an average number of failure above the defined value of " + str(FailuresPerPlanningHorizon))
+
+    #Falta uma função que verifique se o nível de incerteza imposto na degradação é respeitado!!!!!!!!!
+
+    #Verificar se o impacto da manutenção não faz degradar ainda mais o ativo ou se melhora a condição
+    for i in range(0, AssetNumber):
+        for j in range(0, MaintenanceTypes):
+            if  MaintenanceEffect[i, j] < 0:
+                print("It is not possible to have a negative maintenance effect value")
+            if MaintenanceEffect[i, j] > 1:
+                print("It is not possible to have a maintenance effect above the value of 1. If it does the asset condition improvement will be superior to its degradation.")
 
     return InstanceValid
 
@@ -420,6 +450,10 @@ for Family in InstanceFamily: #Distribuição do RUL dos ativos
                 for FailureRisk in ["LowRisk","HighRisk"]: #Niveis de risco
                     for Maintenance in ["LowImp", "HighImp"]: #Niveis de impacto da manutenção
                         for contador in range(0,NumeroInstancias):
+
+                            #Obter instancia que cumpre os requesitos
+                            VerificarInstancia = False
+
 
                             # atualizar o contador
                             InstanceGenerationOrder += 1
@@ -461,7 +495,7 @@ for Family in InstanceFamily: #Distribuição do RUL dos ativos
 
                                 #Gerar a condição inicial para os restantes ativos (excluimos o primeiro ativo)
                                 for i in range(1, AssetNumber):
-                                    InitialHealth[i] = round(random.uniform(LowerBound, UpperBound),0)
+                                    InitialHealth[i] = int(random.uniform(LowerBound, UpperBound))
 
                             # Gerar degradacoes média e do cenario
                             ParametrosGammaDistribution = pd.DataFrame(np.zeros( (AssetNumber, 2) ), columns=['shape', 'scale'])
@@ -489,15 +523,15 @@ for Family in InstanceFamily: #Distribuição do RUL dos ativos
                             # gerar os custos para as ações de substituição devido a falha
                             CostReplacingAsset = np.zeros(AssetNumber)
                             for i in range(0, AssetNumber):
-                                CostReplacingAsset[i] = round(random.uniform(MinReplacementCost, MaxReplacementCost))
+                                CostReplacingAsset[i] = int(random.uniform(MinReplacementCost, MaxReplacementCost))
 
                             # gerar os custos de falha
                             CostFailure = np.zeros(AssetNumber)
                             for i in range(0,AssetNumber):
                                 if FailureRisk == "LowRisk":
-                                    CostFailure[i] = Penalty_multiplier[0][1] * CostReplacingAsset[i]
+                                    CostFailure[i] = int(Penalty_multiplier[0][1] * CostReplacingAsset[i])
                                 elif FailureRisk == "HighRisk":
-                                    CostFailure[i] = Penalty_multiplier[1][1] * CostReplacingAsset[i]
+                                    CostFailure[i] = int(Penalty_multiplier[0][1] * CostReplacingAsset[i])
 
                             # atencao que o beneficio das manutencoes sao calculados atraves do valor esperado da degradacao dos ativos
                             MaintenanceEffect = np.zeros((AssetNumber,MaintenanceTypes))
@@ -511,19 +545,20 @@ for Family in InstanceFamily: #Distribuição do RUL dos ativos
 
                             # gerar os custos para as ações de manutenção
                             CostAction = np.zeros((AssetNumber,MaintenanceTypes))
+                            CostAction_verification = np.zeros((AssetNumber, MaintenanceTypes)) #devido aos arredondamentos esta variável serve para apenas e unica exclusivamente para validar a instância e não constitui o falor final da mesma
                             for i in range(0,AssetNumber):
                                 for j in range(0,MaintenanceTypes):
 
                                     # e preciso calcular o ratio de custo por unidade de forma a evitar que seja mais benefica a manutencao do que a substituicao de forma sistematica
-                                    GeneratedUnitaryCost = random.uniform(AssetMaxHealth / (CostReplacingAsset[i] * UnitCostImprovementMultiplier), AssetMaxHealth / CostReplacingAsset[i])
+                                    GeneratedUnitaryCost = round(random.uniform(AssetMaxHealth / (CostReplacingAsset[i] * UnitCostImprovementMultiplier), AssetMaxHealth / CostReplacingAsset[i]), 4)
 
                                     #Calcular o custo da manutenção face o custo por unidade gerado
-                                    CostAction[i, j] = math.floor(MaintenanceEffect[i, j] * AssetDegradation[i] / GeneratedUnitaryCost)
+                                    CostAction_verification[i, j] = round(MaintenanceEffect[i, j] * AssetDegradation[i] / GeneratedUnitaryCost,4)
+                                    CostAction[i, j] = int(MaintenanceEffect[i, j] * AssetDegradation[i] / GeneratedUnitaryCost)
 
 
                             #Verificar os parâmetros da instância que foram criados
-                            VerificarInstancia = verificador_de_instancias(AssetNumber, PlanningPeriods, InitialHealth, Family, CostReplacingAsset, CostAction, AssetDegradation, MaintenanceEffect)
-                            #VerificarInstancia = True
+                            VerificarInstancia = verificador_de_instancias(AssetNumber, PlanningPeriods, InitialHealth, Family, CostReplacingAsset, CostAction_verification, AssetDegradation, MaintenanceEffect)
 
                             #A instancia é guardade sempre que não for encontrado nenhum problema com os parâmetros que foram gerados
                             if VerificarInstancia == True:
