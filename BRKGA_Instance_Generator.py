@@ -16,10 +16,10 @@ import matplotlib.pyplot as plt
 import math
 
 #diretorio onde queremos colocar as instancias
-PATHInstancia='/Users/LuisDias/Desktop/Doutoramento DEGI/A-Papers LUIS DIAS/3_paper/5 - Resultados/Computational_Runs_Asset_BRKGA'
+PATHInstancia='/Users/LuisDias/Desktop/Doutoramento DEGI/A-Papers LUIS DIAS/3_paper/5 - Resultados/BRKGA_Asset_GRID_Laplace'
 
 #parametros do gerador de instancias
-NumeroInstancias = 3 #numero de instancias a gerar por cada classe de instancia (N[X])
+NumeroInstancias = 1 #numero de instancias a gerar por cada classe de instancia (N[X])
 AssetNumberInstances=np.array([30]) #Lista do numero de ativos
 TimeWindow = np.array([5,10,20]) #Lista de Planning horizons
 MaintenanceTypes = 3 #Tipos de manutenção a considerar
@@ -45,7 +45,7 @@ ConditionGapMultiplier = 0.20 #Diferença máxima entre o ativo em melhor e pior
 UncertaintyLowerBound = [["LowUnc",4.4,1.6,0.6],["HighUnc",8.7,3.2,1.1]] #Valor minimo para a variabilidade da degradação (atualizar se os T mudarem -> ver excel)
 UncertaintyUpperBound = [["LowUnc",8.7,3.2,1.1],["HighUnc",17.5,6.4,2.3]] #Valor máximo para a variabilidade da degradação (atualizar se os T mudarem -> ver excel)
 FailuresPerPlanningHorizon = 1 #Número médio mínimo de falhas por cada horizonte de planeamento
-SampleSize = 30 #Numero de registos de degradacao a gerar para cada ativo através da distribuição gamma
+SampleSize = 200 #Numero de registos de degradacao a gerar para cada ativo através da distribuição gamma
 
 #Manutencao
 #A primeira coluna diz respeito à eficácia da manutenção (Low impact or high impact) e as restantes ao ratio imposto para o tipo de ação de manutenção
@@ -205,7 +205,7 @@ def criar_instancia_original_problem(InstancePath, InstanceID, AssetNumber, Time
     Instance.write("Risk Free Rate Minus\n" + str(RiskFreeRateMinus) + "\n\n")
 
     # RiskFreeRatePlus
-    Instance.write("Maintenance Types\n" + str(RiskFreeRatePlus) + "\n\n")
+    Instance.write("Risk Rate Plus\n" + str(RiskFreeRatePlus) + "\n\n")
 
     # RiskFreeRatePlus
     Instance.write("Sample Size\n" + str(SampleSize) + "\n\n")
