@@ -22,7 +22,7 @@ NumberOfThreads = 1 #Número de CPU cores por job
 ComputerPartition = 'batch' #Partição de computadores do grid onde irá correr o job ('batch ou big)
 ComputerRAM = 8 #Tamanho da RAM que cada job tem disponível
 GridFolderPATH = '/homes/up201202787/BRKGA_Asset_GRID_Laplace' #PATH da pasta no grid que incorpora as diferentes combinações
-BRKGAGenerations = 10000 #Number of generations to run the BRKGA algorithm
+BRKGAGenerations = 5000 #Number of generations to run the BRKGA algorithm
 BRKGAScenarios = 50 #Number of generated scenarios per generation
 BRKGASolutions = 50 #Number of generated solutions per generation
 
@@ -81,7 +81,7 @@ for Family in InstanceFamily: #Distribuição do RUL dos ativos
                             InstanceGenerationOrder += 1
 
                             #Criar o nome do job
-                            InstanceName = "N" + str(AssetNumber) + "TW" + str(PlanningPeriods) + Uncertainty + FailureRisk + Maintenance + "_" + str(InstanceGenerationOrder)
+                            InstanceName = Family + "_N" + str(AssetNumber) + "TW" + str(PlanningPeriods) + Uncertainty + FailureRisk + Maintenance + "_" + str(InstanceGenerationOrder)
 
                             # Abrir job script
                             Job = open(PATHJobs + "/Job_" + InstanceName + ".sh", "w")
@@ -109,14 +109,23 @@ for Family in InstanceFamily: #Distribuição do RUL dos ativos
 
                             #Criar a parameterização do executável
                             Job.write("# LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE\n")
-                            Job.write("cd " + GridFolderPATH + "/" + Family + "_" + Uncertainty + FailureRisk + Maintenance + "\n")
+                            Job.write("cd " + GridFolderPATH + "\n")
 
                             #Criar as combinações de corridas que são precisas de ser geradas
-                            Job.write("./main data/" + InstanceName + ".txt 0 0 0 " + str(BRKGASolutions) + " " + str(BRKGAScenarios) + " " + str(BRKGAGenerations) + "\n")
-                            Job.write("./main data/" + InstanceName + ".txt 1 0 0 " + str(BRKGASolutions) + " " + str(BRKGAScenarios) + " " + str(BRKGAGenerations) + "\n")
-                            Job.write("./main data/" + InstanceName + ".txt 0 1 0 " + str(BRKGASolutions) + " " + str(BRKGAScenarios) + " " + str(BRKGAGenerations) + "\n")
-                            Job.write("./main data/" + InstanceName + ".txt 0 0 1 " + str(BRKGASolutions) + " " + str(BRKGAScenarios) + " " + str(BRKGAGenerations) + "\n")
-                            Job.write("./main data/" + InstanceName + ".txt 1 1 1 " + str(BRKGASolutions) + " " + str(BRKGAScenarios) + " " + str(BRKGAGenerations) + "\n")
+                            Job.write("./main " + InstanceName + " 0 0 0 " + str(BRKGASolutions) + " " + str(BRKGAScenarios) + " "
+                                      + str(BRKGAGenerations) + " " + Uncertainty + " " + FailureRisk + " " + Maintenance + "\n")
+
+                            Job.write("./main " + InstanceName + " 1 0 0 " + str(BRKGASolutions) + " " + str(BRKGAScenarios) + " "
+                                      + str(BRKGAGenerations) + " " + Uncertainty + " " + FailureRisk + " " + Maintenance + "\n")
+
+                            Job.write("./main " + InstanceName + " 0 1 0 " + str(BRKGASolutions) + " " + str(BRKGAScenarios) + " "
+                                      + str(BRKGAGenerations) + " " + Uncertainty + " " + FailureRisk + " " + Maintenance + "\n")
+
+                            Job.write("./main " + InstanceName + " 0 0 1 " + str(BRKGASolutions) + " " + str(BRKGAScenarios) + " "
+                                      + str(BRKGAGenerations) + " " + Uncertainty + " " + FailureRisk + " " + Maintenance + "\n")
+
+                            Job.write("./main " + InstanceName + " 1 1 1 " + str(BRKGASolutions) + " " + str(BRKGAScenarios) + " "
+                                      + str(BRKGAGenerations) + " " + Uncertainty + " " + FailureRisk + " " + Maintenance + "\n")
 
                             #Sinalizar fim do bash script
                             Job.write("# End of bash script")

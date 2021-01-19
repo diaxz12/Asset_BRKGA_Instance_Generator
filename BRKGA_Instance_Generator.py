@@ -16,7 +16,7 @@ import matplotlib.pyplot as plt
 import math
 
 #diretorio onde queremos colocar as instancias
-PATHInstancia='/Users/LuisDias/Desktop/Doutoramento DEGI/A-Papers LUIS DIAS/3_paper/5 - Resultados/BRKGA_Asset_GRID_Laplace'
+PATHInstancia='/Users/LuisDias/Desktop/Doutoramento DEGI/A-Papers LUIS DIAS/3_paper/5 - Resultados/BRKGA_Asset_GRID_Laplace/data'
 
 #parametros do gerador de instancias
 NumeroInstancias = 1 #numero de instancias a gerar por cada classe de instancia (N[X])
@@ -190,7 +190,7 @@ def GenerateUncertaintyMatrix(TimeWindowIncrement,UncertaintyIncrement,AssetMaxH
 def criar_instancia_original_problem(InstancePath, InstanceID, AssetNumber, TimeWindow, Uncertainty, FailureRisk, Maintenance, MaintenanceTypes, RiskFreeRateMinus, RiskFreeRatePlus, SampleSize, InitialHealth, DegradationMatrix, CostReplacingAsset, CostFailure, CostAction, MaintenanceEffect, AssetAssetMaxHealth):
 
     # Abrir instancias
-    Instance = open(InstancePath + "/" + "Instance_N" + str(AssetNumber) + "TW" + str(TimeWindow) + Uncertainty + FailureRisk + Maintenance + "_" + str(InstanceID) + ".txt", "w")
+    Instance = open(InstancePath + "_N" + str(AssetNumber) + "TW" + str(TimeWindow) + Uncertainty + FailureRisk + Maintenance + "_" + str(InstanceID) + ".txt", "w")
 
     # AssetNumber
     Instance.write("Asset Number\n" + str(AssetNumber) + "\n\n")
@@ -566,7 +566,7 @@ for Family in InstanceFamily: #Distribuição do RUL dos ativos
                             if VerificarInstancia == True:
 
                                 # Atualizar o path da instancia para a pasta respetiva para qual se está a gerar a instancia
-                                FinalPATHInstancia = PATHInstancia + "/" + Family + "_" + Uncertainty + FailureRisk + Maintenance + "/data"
+                                FinalPATHInstancia = PATHInstancia + "/" + Family
 
                                 # Mostrar o path completo para a instancia gerada
                                 print("Folder path = " + FinalPATHInstancia)
