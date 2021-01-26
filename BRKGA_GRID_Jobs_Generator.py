@@ -129,3 +129,4 @@ for Family in InstanceFamily: #Distribuição do RUL dos ativos
 
                             #Sinalizar fim do bash script
                             Job.write("# End of bash script")
+                            Job.close()

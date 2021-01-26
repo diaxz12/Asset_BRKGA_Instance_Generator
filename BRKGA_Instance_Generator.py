@@ -13,14 +13,15 @@ import numpy as np
 from scipy.stats import gamma
 import random
 import matplotlib.pyplot as plt
+from scipy.optimize import fsolve
 import math
 
 #diretorio onde queremos colocar as instancias
 PATHInstancia='/Users/LuisDias/Desktop/Doutoramento DEGI/A-Papers LUIS DIAS/3_paper/5 - Resultados/BRKGA_Asset_GRID_Laplace/data'
 
 #parametros do gerador de instancias
-NumeroInstancias = 1 #numero de instancias a gerar por cada classe de instancia (N[X])
-AssetNumberInstances=np.array([30]) #Lista do numero de ativos
+NumeroInstancias = 10 #numero de instancias a gerar por cada classe de instancia (N[X])
+AssetNumberInstances = np.array([30]) #Lista do numero de ativos
 TimeWindow = np.array([5,10,20]) #Lista de Planning horizons
 MaintenanceTypes = 3 #Tipos de manutenção a considerar
 AssetMaxHealth = 100 #Condição máxima dos ativos
@@ -42,8 +43,8 @@ BadConditionMultiplier = 0.30 #Condição mínima que é gerada para cada ativo 
 ConditionGapMultiplier = 0.20 #Diferença máxima entre o ativo em melhor e pior condição no portfolio (em proporção face a condição máxima)
 
 #A primeira coluna diz respeito ao nivel de incerteza (ex: Low Uncertainty) e as restantes dizem respeito ao valor dos periodos considerados (T=5,T=10,T=20)
-UncertaintyLowerBound = [["LowUnc",4.4,1.6,0.6],["HighUnc",8.7,3.2,1.1]] #Valor minimo para a variabilidade da degradação (atualizar se os T mudarem -> ver excel)
-UncertaintyUpperBound = [["LowUnc",8.7,3.2,1.1],["HighUnc",17.5,6.4,2.3]] #Valor máximo para a variabilidade da degradação (atualizar se os T mudarem -> ver excel)
+UncertaintyLowerBound = [["LowUnc",0.05],["HighUnc",0.15]] #Valor minimo para a variabilidade da degradação (atualizar se os T mudarem -> ver excel)
+UncertaintyUpperBound = [["LowUnc",0.15],["HighUnc",0.5]] #Valor máximo para a variabilidade da degradação (atualizar se os T mudarem -> ver excel)
 FailuresPerPlanningHorizon = 1 #Número médio mínimo de falhas por cada horizonte de planeamento
 SampleSize = 200 #Numero de registos de degradacao a gerar para cada ativo através da distribuição gamma
 
@@ -74,14 +75,65 @@ def simular_degradacao_linear(AssetNumber,ParametrosGammaDistribution,SampleSize
 
     return matriz_degradacao
 
-# função que permite calcular os parametros da distribuição de gamma face os valores indicados para o nunero de falhas por periodo (F) e a variabilidade da degradação (theta)
+#funcao que permite estimar os parametros da distribuição da Birnbaum-Saunders (BS) dados a média e desvio padrão especificados.
+def estimar_parametros_BS(TimeWindow, FailuresPerPlanningHorizon, Uncertainty, GuessStep=0.25):
+
+    #Calcular a média da distribuição Birnbaum-Saunders
+    average_BS = TimeWindow * FailuresPerPlanningHorizon
+
+    #Calcular o desvio padrão da distribuição Birnbaum-Saunders
+    standard_deviation_BS = Uncertainty * average_BS
+
+    #Estimar os parâmetros da BS
+    AlphaGuess = 0
+    BetaGuess = 0
+    EquationsRoot = False
+
+    #Encontrar os valores que convergem para a solução
+    while EquationsRoot == False:
+        alpha, beta = fsolve(sistema_equacoes_parametros_BS, (AlphaGuess,BetaGuess), args=(average_BS,standard_deviation_BS), maxfev=500)
+
+        #Verificar se foram encontradas as raizes das equações
+        if  average_BS - beta * (1 + alpha**2/2) < 0.01 and standard_deviation_BS**2 - (alpha * beta)**2 * (1 + 5 * alpha**2/4) < 0.01:
+            EquationsRoot = True
+
+        #Caso a função não convirga é necessário atualizar a solução inicial do sistema
+        else:
+            print("Updating Initial Guess")
+            AlphaGuess += GuessStep
+            BetaGuess += GuessStep
+
+    #Retornar o modulo do valor caso sejam descobertos valores negativos (o simétrico é compatível)
+    if alpha < 0:
+        alpha = (-1) * alpha
+    if beta < 0:
+        beta = (-1) * beta
+
+    return round(alpha,4), round(beta,4)
+
+#Sistema de equações necessários para encontrar os valores desejados
+def sistema_equacoes_parametros_BS(vars, average_BS, standard_deviation_BS):
+
+    #Parâmetros da BS (neste sistema são variáveis a descobrir o valor desejado)
+    alpha, beta = vars
+
+    #Sistema de equações
+    Equation1 = average_BS - beta * (1 + alpha**2/2)
+    Equation2 = standard_deviation_BS**2 - (alpha * beta)**2 * (1 + 5 * alpha**2/4)
+
+    return [Equation1, Equation2]
+
+# função que permite calcular os parametros da distribuição de gamma face os valores indicados para o numero de falhas por periodo (F) e a variabilidade da degradação (theta)
 def estimar_gamma_parametros(TimeWindow,AssetMaxHealth,FailuresPerPlanningHorizon,Uncertainty,VerifyPlot = True):
 
+    #Estimar os parametros da distribuição do RUL de ativo
+    alpha, beta = estimar_parametros_BS(TimeWindow, FailuresPerPlanningHorizon, Uncertainty)
+
     #Calcular o scale parameter da distribuicao gamma
-    GammaScaleParameter = (TimeWindow * Uncertainty * Uncertainty) / (FailuresPerPlanningHorizon * AssetMaxHealth)
+    GammaScaleParameter = round(alpha * alpha * AssetMaxHealth, 4)
 
     #Calcular o shape parameter da distribuicao gamma
-    GammaShapeParameter = (AssetMaxHealth * FailuresPerPlanningHorizon) / (TimeWindow * GammaScaleParameter)
+    GammaShapeParameter = round(1 / (alpha * alpha * beta),4)
 
     #Gerar plot da distribuição do RUL
     Iterations = 1000
@@ -155,11 +207,14 @@ def GenerateUncertaintyMatrix(TimeWindowIncrement,UncertaintyIncrement,AssetMaxH
             # Estado da iteracao
             print("TimeWindow=" + str(TimeWindow))
 
+            # Estimar os parametros da distribuição do RUL de ativo
+            alpha, beta = estimar_parametros_BS(TimeWindow, FailuresPerPlanningHorizon, Uncertainty)
+
             # Calcular o scale parameter da distribuicao gamma
-            GammaScaleParameter = (TimeWindow * Uncertainty * Uncertainty) / (FailuresPerPlanningHorizon * AssetMaxHealth)
+            GammaScaleParameter = round(alpha * alpha * AssetMaxHealth, 4)
 
             # Calcular o shape parameter da distribuicao gamma
-            GammaShapeParameter = (AssetMaxHealth * FailuresPerPlanningHorizon) / (TimeWindow * GammaScaleParameter)
+            GammaShapeParameter = round(1 / (alpha * alpha * beta), 4)
 
             # Gerar plot da distribuição do RUL
             Iterations = 1000
@@ -306,7 +361,7 @@ def criar_instancia_original_problem(InstancePath, InstanceID, AssetNumber, Time
     Instance.close()
 
 # função para validar as instancias geradas
-def verificador_de_instancias(AssetNumber, PlanningPeriods, InitialHealth, Family, CostReplacingAsset, CostAction, AssetDegradation, MaintenanceEffect):
+def verificador_de_instancias(AssetNumber, PlanningPeriods, InitialHealth, Family, CostReplacingAsset, CostAction, ParametrosGammaDistribution, AssetDegradation, MaintenanceEffect):
 
     #Por defeito a resposta será afirmativa de forma a que a instância seja válida face os requesitos definidos
     InstanceValid = True
@@ -374,14 +429,23 @@ def verificador_de_instancias(AssetNumber, PlanningPeriods, InitialHealth, Famil
         if CostReplacingAsset[i] > MaxReplacementCost:
             print("Asset" + str(i) + "has a planned replacement cost above the specified maximum value")
 
+            # Sempre que um critério de verificação for verificado a instancia é negada
+            InstanceValid = False
+
         if CostReplacingAsset[i] < MinReplacementCost:
             print("Asset" + str(i) + "has a planned replacement cost bellow the specified minimum value")
+
+            # Sempre que um critério de verificação for verificado a instancia é negada
+            InstanceValid = False
 
     #Verificar se os limites dos custos de substituição por falha são respeitados
     for i in range(0, AssetNumber):
 
         if CostFailure[i] != CostReplacingAsset[i] * Penalty_multiplier[0][1] and CostFailure[i] != CostReplacingAsset[i] * Penalty_multiplier[1][1]:
             print("Asset" + str(i) + "has a unplanned replacement cost which does not respects the imposed proportionality in the Penalty_multiplier variable")
+
+            # Sempre que um critério de verificação for verificado a instancia é negada
+            InstanceValid = False
 
     #Verificar o custo beneficio das ações de manutenção face as ações de substituição
     for i in range(0, AssetNumber):
@@ -408,15 +472,61 @@ def verificador_de_instancias(AssetNumber, PlanningPeriods, InitialHealth, Famil
         if round(PlanningPeriods / (AssetMaxHealth / AssetDegradation[i]),0) >  FailuresPerPlanningHorizon:
             print("Asset" + str(i) + "has an average number of failure above the defined value of " + str(FailuresPerPlanningHorizon))
 
-    #Falta uma função que verifique se o nível de incerteza imposto na degradação é respeitado!!!!!!!!!
+            # Sempre que um critério de verificação for verificado a instancia é negada
+            InstanceValid = False
+
+    #Verificar se o nível de incerteza imposto na degradação é respeitado (coeficiente de variação)
+    for i in range(0, AssetNumber):
+
+        #calcular parametros da distribuição do RUL
+        RUL_alpha = 1 / math.sqrt(AssetMaxHealth / ParametrosGammaDistribution['scale'][i])
+        RUL_beta = (AssetMaxHealth / ParametrosGammaDistribution['scale'][i]) / ParametrosGammaDistribution['shape'][i]
+
+        #Calcular media e desvio padrão da distribuição do RUL
+        RUL_average = RUL_beta * (1 + RUL_alpha**2 / 2)
+        RUL_standard_deviation = math.sqrt((RUL_alpha * RUL_beta)**2 * (1 + 5 * RUL_alpha**2 / 4))
+
+        #Calcular coeficiente de variação aka nível de incerteza
+        AssetUncertainty = round(RUL_standard_deviation / RUL_average, 2)
+
+        if (Uncertainty == "LowUnc") and (AssetUncertainty < UncertaintyLowerBound[0][1]):
+            print("Asset" + str(i) + "has an uncertainty level bellow the specified value of " + str(UncertaintyLowerBound[0][1]))
+
+            # Sempre que um critério de verificação for verificado a instancia é negada
+            InstanceValid = False
+
+        elif (Uncertainty == "LowUnc") and (AssetUncertainty > UncertaintyUpperBound[0][1]):
+            print("Asset" + str(i) + "has an uncertainty level above the specified value of " + str(UncertaintyUpperBound[0][1]))
+
+            # Sempre que um critério de verificação for verificado a instancia é negada
+            InstanceValid = False
+
+        elif (Uncertainty == "HighUnc") and (AssetUncertainty < UncertaintyLowerBound[1][1]):
+            print("Asset" + str(i) + "has an uncertainty level bellow the specified value of " + str(UncertaintyLowerBound[1][1]))
+
+            # Sempre que um critério de verificação for verificado a instancia é negada
+            InstanceValid = False
+
+        elif (Uncertainty == "HighUnc") and (AssetUncertainty > UncertaintyUpperBound[1][1]):
+            print("Asset" + str(i) + "has an uncertainty level above the specified value of " + str(UncertaintyUpperBound[1][1]))
+
+            # Sempre que um critério de verificação for verificado a instancia é negada
+            InstanceValid = False
 
     #Verificar se o impacto da manutenção não faz degradar ainda mais o ativo ou se melhora a condição
     for i in range(0, AssetNumber):
         for j in range(0, MaintenanceTypes):
             if  MaintenanceEffect[i, j] < 0:
                 print("It is not possible to have a negative maintenance effect value")
+
+                # Sempre que um critério de verificação for verificado a instancia é negada
+                InstanceValid = False
+
             if MaintenanceEffect[i, j] > 1:
                 print("It is not possible to have a maintenance effect above the value of 1. If it does the asset condition improvement will be superior to its degradation.")
+
+                # Sempre que um critério de verificação for verificado a instancia é negada
+                InstanceValid = False
 
     return InstanceValid
 
@@ -433,14 +543,8 @@ for Family in InstanceFamily: #Distribuição do RUL dos ativos
     # Familia de instancia a ser gerada
     print(Family)
 
-    # Counter que permite ajustar a incerteza para um TimeWindow em especifico
-    UncertaintyPeriodCount = 0
-
     #Gerar as instancias face o numero de ativos e periodos de planeamento no horizonte em questão
     for PlanningPeriods in TimeWindow: #Tipos de horizontes de planeamento
-
-        #Atualizar o counter
-        UncertaintyPeriodCount +=1
 
         #Percorrer as combinações
         for AssetNumber in AssetNumberInstances: #Tipos de portfolio de ativos
@@ -508,9 +612,9 @@ for Family in InstanceFamily: #Distribuição do RUL dos ativos
 
                                 #Parametrizar a distribuiçã gamma de acordo com os parâmetros especificados
                                 if Uncertainty == "LowUnc":
-                                    UncertaintyLevel = round(random.uniform(UncertaintyLowerBound[0][UncertaintyPeriodCount],UncertaintyUpperBound[0][UncertaintyPeriodCount]),2)
+                                    UncertaintyLevel = round(random.uniform(UncertaintyLowerBound[0][1],UncertaintyUpperBound[0][1]),2)
                                 elif Uncertainty == "HighUnc":
-                                    UncertaintyLevel = round(random.uniform(UncertaintyLowerBound[1][UncertaintyPeriodCount],UncertaintyUpperBound[1][UncertaintyPeriodCount]),2)
+                                    UncertaintyLevel = round(random.uniform(UncertaintyLowerBound[1][1],UncertaintyUpperBound[1][1]),2)
 
                                 # shape and scale parameter da gaussian distribution
                                 ParametrosGammaDistribution['shape'][i], ParametrosGammaDistribution['scale'][i] = estimar_gamma_parametros(PlanningPeriods,AssetMaxHealth,
@@ -560,7 +664,7 @@ for Family in InstanceFamily: #Distribuição do RUL dos ativos
 
 
                             #Verificar os parâmetros da instância que foram criados
-                            VerificarInstancia = verificador_de_instancias(AssetNumber, PlanningPeriods, InitialHealth, Family, CostReplacingAsset, CostAction_verification, AssetDegradation, MaintenanceEffect)
+                            VerificarInstancia = verificador_de_instancias(AssetNumber, PlanningPeriods, InitialHealth, Family, CostReplacingAsset, CostAction_verification, ParametrosGammaDistribution, AssetDegradation, MaintenanceEffect)
 
                             #A instancia é guardade sempre que não for encontrado nenhum problema com os parâmetros que foram gerados
                             if VerificarInstancia == True:
