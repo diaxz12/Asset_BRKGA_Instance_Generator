@@ -18,13 +18,14 @@ NumeroInstancias = 1 #numero de instancias a gerar por cada classe de instancia 
 AssetNumberInstances=np.array([30]) #Lista do numero de ativos
 TimeWindow = np.array([5,10,20]) #Lista de Planning horizons
 TimeLimit = 72 #Tempo limite que o job pode ser executado no grid (em Horas)
-NumberOfThreads = 1 #Número de CPU cores por job
+NumberOfThreads = 4 #Número de CPU cores por job
 ComputerPartition = 'batch' #Partição de computadores do grid onde irá correr o job ('batch ou big)
 ComputerRAM = 8 #Tamanho da RAM que cada job tem disponível
 GridFolderPATH = '/homes/up201202787/BRKGA_Asset_GRID_Laplace' #PATH da pasta no grid que incorpora as diferentes combinações
 BRKGAGenerations = 5000 #Number of generations to run the BRKGA algorithm
 BRKGAScenarios = 50 #Number of generated scenarios per generation
 BRKGASolutions = 50 #Number of generated solutions per generation
+ModelVariations = ["0 0 0", "1 0 0","0 1 0","0 0 1","1 1 1"] #Variantes do modelo que pretendemos quanto ao seu impacto nos resultados para uma determinada instancia
 
 #Nível de risco da falha
 Penalty_multiplier = ["LowRisk","HighRisk"] #Relação de proporcionalidade entre o custo da falha e o custo de substituição para os dois níveis de risco (Custo Falha = Penalty_multiplier * Custo_substituicao)
@@ -71,62 +72,51 @@ for Family in InstanceFamily: #Distribuição do RUL dos ativos
             for Uncertainty in UncertaintyLevel: #Niveis de incerteza
                 for FailureRisk in Penalty_multiplier: #Niveis de risco
                     for Maintenance in ratio: #Niveis de impacto da manutenção
+                        for Variation in ModelVariations: #Variantes do modelo que pretendemos testar
 
-                        # contador para identificar o numero da instancia
-                        InstanceGenerationOrder = 0
+                            # contador para identificar o numero da instancia
+                            InstanceGenerationOrder = 0
 
-                        for contador in range(0,NumeroInstancias):
+                            for contador in range(0,NumeroInstancias):
 
-                            # atualizar o contador
-                            InstanceGenerationOrder += 1
+                                # atualizar o contador
+                                InstanceGenerationOrder += 1
 
-                            #Criar o nome do job
-                            InstanceName = Family + "_N" + str(AssetNumber) + "TW" + str(PlanningPeriods) + Uncertainty + FailureRisk + Maintenance + "_" + str(InstanceGenerationOrder)
+                                #Criar o nome do job
+                                InstanceName = Family + "_N" + str(AssetNumber) + "TW" + str(PlanningPeriods) + Uncertainty + FailureRisk + Maintenance + "_" + str(InstanceGenerationOrder)
 
-                            # Abrir job script
-                            Job = open(PATHJobs + "/Job_" + InstanceName + ".sh", "w")
+                                # Abrir job script
+                                Job = open(PATHJobs + "/Job_" + Variation.replace(" ","") + "_" + InstanceName + ".sh", "w")
 
-                            #Construir o header do job script
-                            Job.write("#!/bin/bash\n\n#Submit script with: sbatch thefilename\n")
+                                #Construir o header do job script
+                                Job.write("#!/bin/bash\n\n#Submit script with: sbatch thefilename\n")
 
-                            #Especificar o time limit da corrida do job
-                            Job.write("#SBATCH --time=" + str(TimeLimit) + ":00:00   # walltime\n")
+                                #Especificar o time limit da corrida do job
+                                Job.write("#SBATCH --time=" + str(TimeLimit) + ":00:00   # walltime\n")
 
-                            #Especificar o numero de CPU cores
-                            Job.write("#SBATCH --ntasks=" + str(NumberOfThreads) + "   # number of processor cores (i.e. tasks)\n")
+                                #Especificar o numero de CPU cores
+                                Job.write("#SBATCH --ntasks=" + str(NumberOfThreads) + "   # number of processor cores (i.e. tasks)\n")
 
-                            #Especificar o numero de nós a utilizar no grid (só iremos utilizar em todas as corridas 1 nó para facilitar os testes computacionais)
-                            Job.write("#SBATCH --nodes=1   # number of nodes\n")
+                                #Especificar o numero de nós a utilizar no grid (só iremos utilizar em todas as corridas 1 nó para facilitar os testes computacionais)
+                                Job.write("#SBATCH --nodes=1   # number of nodes\n")
 
-                            #Especificar a partição do grid a utilizar
-                            Job.write("#SBATCH -p " + ComputerPartition + "   # partition(s)\n")
+                                #Especificar a partição do grid a utilizar
+                                Job.write("#SBATCH -p " + ComputerPartition + "   # partition(s)\n")
 
-                            #Especificar o tamanho da RAM disponível por job
-                            Job.write("#SBATCH --mem-per-cpu=" + str(ComputerRAM) + "G   # memory per CPU core\n")
+                                #Especificar o tamanho da RAM disponível por job
+                                Job.write("#SBATCH --mem-per-cpu=" + str(ComputerRAM) + "G   # memory per CPU core\n")
 
-                            #Especificar o nome do job a utilizar
-                            Job.write("#SBATCH -J '" + InstanceName + "'   # job name\n\n")
+                                #Especificar o nome do job a utilizar
+                                Job.write("#SBATCH -J '" + InstanceName + "'   # job name\n\n")
 
-                            #Criar a parameterização do executável
-                            Job.write("# LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE\n")
-                            Job.write("cd " + GridFolderPATH + "\n")
+                                #Criar a parameterização do executável
+                                Job.write("# LOAD MODULES, INSERT CODE, AND RUN YOUR PROGRAMS HERE\n")
+                                Job.write("cd " + GridFolderPATH + "\n")
 
-                            #Criar as combinações de corridas que são precisas de ser geradas
-                            Job.write("./main " + InstanceName + " 0 0 0 " + str(BRKGASolutions) + " " + str(BRKGAScenarios) + " "
-                                      + str(BRKGAGenerations) + " " + Uncertainty + " " + FailureRisk + " " + Maintenance + "\n")
+                                #Criar as combinações de corridas que são precisas de ser geradas
+                                Job.write("./main " + InstanceName + " " + Variation + " " + str(BRKGASolutions) + " " + str(BRKGAScenarios) + " "
+                                          + str(BRKGAGenerations) + " " + Uncertainty + " " + FailureRisk + " " + Maintenance + "\n\n")
 
-                            Job.write("./main " + InstanceName + " 1 0 0 " + str(BRKGASolutions) + " " + str(BRKGAScenarios) + " "
-                                      + str(BRKGAGenerations) + " " + Uncertainty + " " + FailureRisk + " " + Maintenance + "\n")
-
-                            Job.write("./main " + InstanceName + " 0 1 0 " + str(BRKGASolutions) + " " + str(BRKGAScenarios) + " "
-                                      + str(BRKGAGenerations) + " " + Uncertainty + " " + FailureRisk + " " + Maintenance + "\n")
-
-                            Job.write("./main " + InstanceName + " 0 0 1 " + str(BRKGASolutions) + " " + str(BRKGAScenarios) + " "
-                                      + str(BRKGAGenerations) + " " + Uncertainty + " " + FailureRisk + " " + Maintenance + "\n")
-
-                            Job.write("./main " + InstanceName + " 1 1 1 " + str(BRKGASolutions) + " " + str(BRKGAScenarios) + " "
-                                      + str(BRKGAGenerations) + " " + Uncertainty + " " + FailureRisk + " " + Maintenance + "\n")
-
-                            #Sinalizar fim do bash script
-                            Job.write("# End of bash script")
-                            Job.close()
+                                #Sinalizar fim do bash script
+                                Job.write("# End of bash script")
+                                Job.close()
