@@ -43,8 +43,8 @@ BadConditionMultiplier = 0.30 #Condição mínima que é gerada para cada ativo 
 ConditionGapMultiplier = 0.20 #Diferença máxima entre o ativo em melhor e pior condição no portfolio (em proporção face a condição máxima)
 
 #A primeira coluna diz respeito ao nivel de incerteza (ex: Low Uncertainty) e as restantes dizem respeito ao valor dos periodos considerados (T=5,T=10,T=20)
-UncertaintyLowerBound = [["LowUnc",0.05],["HighUnc",0.15]] #Valor minimo para a variabilidade da degradação (atualizar se os T mudarem -> ver excel)
-UncertaintyUpperBound = [["LowUnc",0.15],["HighUnc",0.5]] #Valor máximo para a variabilidade da degradação (atualizar se os T mudarem -> ver excel)
+UncertaintyLowerBound = [["LowUnc",0.05],["HighUnc",0.15]] #Valor minimo para a variabilidade da degradação
+UncertaintyUpperBound = [["LowUnc",0.15],["HighUnc",0.5]] #Valor máximo para a variabilidade da degradação
 FailuresPerPlanningHorizon = 1 #Número médio mínimo de falhas por cada horizonte de planeamento
 SampleSize = 200 #Numero de registos de degradacao a gerar para cada ativo através da distribuição gamma
 
