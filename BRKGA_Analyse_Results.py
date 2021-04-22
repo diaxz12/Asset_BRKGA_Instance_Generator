@@ -15,11 +15,11 @@ import matplotlib.pyplot as plt
 import math
 
 #diretorio onde queremos ler os resultados
-PATHInstancia = '/Users/LuisDias/Desktop/BRKGA_Asset_GRID_Laplace/resultados/BRKGA_cplex/'
-PATH_benchmark = '/Users/LuisDias/Desktop/BRKGA_Asset_GRID_Laplace/resultados/benchmark/'
+PATHInstancia = '/Users/LuisDias/Desktop/BRKGA_Asset_GRID_Laplace_random/resultados/BRKGA_cplex/'
+PATH_benchmark = '/Users/LuisDias/Desktop/BRKGA_Asset_GRID_Laplace_random/resultados/benchmark/'
 
 #Diretorio onde queremos guardar os resultados
-PATH_results = '/Users/LuisDias/Desktop/Doutoramento DEGI/A-Papers LUIS DIAS/3_paper/5 - Resultados/BRKGA_Asset_GRID_Laplace/resultados/'
+PATH_results = '/Users/LuisDias/Desktop/Doutoramento DEGI/A-Papers LUIS DIAS/3_paper/5 - Resultados/BRKGA_Asset_GRID_Laplace_random/resultados/'
 
 ##################################################
 ###-----Funcoes para estudar os resultados-----###
@@ -233,6 +233,14 @@ FitnessValues = search_results_to_study(PATHInstancia, 'BRKGA_solution_fitness',
 #Ler os resultado do tempo
 TimeValues = search_results_to_study(PATHInstancia, 'BRKGA_time', ['Instancia','Tempo_computacional'])
 
+#Ler os resultados do output mais detalhado do BRKGA
+# BaselineValues = search_results_to_study(PATHInstancia, 'baseline_solution', ['Instance','Generation','Solution','Scenario','Period','Assets_number','Time_window_Length',
+#                                                                                  'Maintenance_Types','Fitness','Defined_Budget','Over_Budget','RUL_Dispersion','Budget_GAP',
+#                                                                                  'End_of_Horizon_Effect','OM_Costs','OM_PlannedCosts','OM_UnlannedCosts','Accumulated_Fitness',
+#                                                                                  'Accumulated_Budget','Accumulated_Overbudget','Accumulated_RUL','Accumulated_Budget_Gap',
+#                                                                                  'Accumulated_End_of_Horizon','Accumulated_OM_Costs','Accumulated_OM_PlannedCosts','Accumulated_OM_UnlannedCosts'],True)
+#
+
 #Ler os resultados do benchmark
 BenchmarkValues = search_results_to_study(PATH_benchmark, 'benchmark_solution', ['Instance','Generation','Solution','Scenario','Period','Assets_number','Time_window_Length',
                                                                                  'Maintenance_Types','Fitness','Defined_Budget','Over_Budget','RUL_Dispersion','Budget_GAP',
@@ -263,11 +271,13 @@ SolutionRobustnessValues = search_results_to_study(PATHInstancia, 'solution_robu
 GapResults = evaluate_benchmark_results(BenchmarkValues, BaselineBenchmarkValues)
 
 #Calcular a robustez dos resultados (necessário para calcular a robustez da solução!!!!!)
-#RobustnessResults = evaluate_solution_robustness(SolutionRobustnessValues)
+#RobustnessResults = evaluate_solution_robustness(SolutionRobustnessValues, BaselineValues)
 
 #Analizar a diversidade dos cenários
-ScenarioDiversityPlot(PATHInstancia, 'R0H1E0_N30TW10_LowUncLowRiskHighImp_scenario_diversity.csv')
+ScenarioDiversityPlot(PATHInstancia, 'R0H0E0_N20TW10_LowUncLowRiskHighImp_scenario_diversity.csv')
 
 #Export dos resultados
+FitnessValues.to_csv(path_or_buf=PATH_results+'Fitness.csv',index=False)
 TimeValues.to_csv(path_or_buf=PATH_results+'Tempo_computacional.csv',index=False)
 GapResults.to_csv(path_or_buf=PATH_results+'Solution_quality.csv',index=False)
+#RobustnessResults.to_csv(path_or_buf=PATH_results+'Robustness_results_quality.csv',index=False)

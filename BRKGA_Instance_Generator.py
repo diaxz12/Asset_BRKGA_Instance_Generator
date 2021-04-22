@@ -17,11 +17,11 @@ from scipy.optimize import fsolve
 import math
 
 #diretorio onde queremos colocar as instancias
-PATHInstancia='/Users/LuisDias/Desktop/Doutoramento DEGI/A-Papers LUIS DIAS/3_paper/5 - Resultados/BRKGA_Asset_GRID_Laplace/data'
+PATHInstancia='/Users/LuisDias/Desktop/Doutoramento DEGI/A-Papers LUIS DIAS/3_paper/5 - Resultados/BRKGA_Asset_GRID_Laplace_random_new/data'
 
 #parametros do gerador de instancias
-NumeroInstancias = 10 #numero de instancias a gerar por cada classe de instancia (N[X])
-AssetNumberInstances = np.array([30]) #Lista do numero de ativos
+NumeroInstancias = 1 #numero de instancias a gerar por cada classe de instancia (N[X])
+AssetNumberInstances = np.array([20]) #Lista do numero de ativos
 TimeWindow = np.array([5,10,20]) #Lista de Planning horizons
 MaintenanceTypes = 3 #Tipos de manutenção a considerar
 AssetMaxHealth = 100 #Condição máxima dos ativos
@@ -35,7 +35,7 @@ Penalty_multiplier = [["LowRisk",2],["HighRisk",10]] #Relação de proporcionali
 
 #Distribuicao do RUL
 #InstanceFamily = ["Clustered", "Concentrated", "Random"] #Caracterista da distribuição da condição inicial dos ativos
-InstanceFamily = ["Clustered"] #Caracterista da distribuição da condição inicial dos ativos
+InstanceFamily = ["Random"] #Caracterista da distribuição da condição inicial dos ativos
 ClusteredAssetsPortion = 0.5 #Indica a proporção de ativos que se encontram no cluster de má condição
 MinimumInitialConditionMultiplier = 0.10 #Condição mínima que é gerada para cada ativo (em proporção face a condição máxima)
 GoodConditionMultiplier = 0.70 #Condição mínima que é gerada para cada ativo para ser considerado como um ativo em boa condição (em proporção face a condição máxima)
@@ -44,7 +44,7 @@ ConditionGapMultiplier = 0.20 #Diferença máxima entre o ativo em melhor e pior
 
 #A primeira coluna diz respeito ao nivel de incerteza (ex: Low Uncertainty) e as restantes dizem respeito ao valor dos periodos considerados (T=5,T=10,T=20)
 UncertaintyLowerBound = [["LowUnc",0.05],["HighUnc",0.15]] #Valor minimo para a variabilidade da degradação
-UncertaintyUpperBound = [["LowUnc",0.15],["HighUnc",0.5]] #Valor máximo para a variabilidade da degradação
+UncertaintyUpperBound = [["LowUnc",0.15],["HighUnc",0.30]] #Valor máximo para a variabilidade da degradação
 FailuresPerPlanningHorizon = 1 #Número médio mínimo de falhas por cada horizonte de planeamento
 SampleSize = 200 #Numero de registos de degradacao a gerar para cada ativo através da distribuição gamma
 

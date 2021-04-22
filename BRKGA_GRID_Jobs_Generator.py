@@ -11,28 +11,28 @@
 import numpy as np
 
 #diretorio onde queremos colocar as instancias
-PATHJobs='/Users/LuisDias/Desktop/Doutoramento DEGI/A-Papers LUIS DIAS/3_paper/5 - Resultados/BRKGA_Asset_GRID_Laplace/Job_scripts'
+PATHJobs='/Users/LuisDias/Desktop/Doutoramento DEGI/A-Papers LUIS DIAS/3_paper/5 - Resultados/BRKGA_Asset_GRID_Laplace_random_new/Job_scripts'
 
 #parametros do gerador de jobs
 NumeroInstancias = 1 #numero de instancias a gerar por cada classe de instancia (N[X])
-AssetNumberInstances=np.array([30]) #Lista do numero de ativos
+AssetNumberInstances=np.array([20]) #Lista do numero de ativos
 TimeWindow = np.array([5,10,20]) #Lista de Planning horizons
-TimeLimit = 72 #Tempo limite que o job pode ser executado no grid (em Horas)
+TimeLimit = 48 #Tempo limite que o job pode ser executado no grid (em Horas)
 NumberOfThreads = 4 #Número de CPU cores por job
 ComputerPartition = 'batch' #Partição de computadores do grid onde irá correr o job ('batch ou big)
 ComputerRAM = 8 #Tamanho da RAM que cada job tem disponível
-GridFolderPATH = '/homes/up201202787/BRKGA_Asset_GRID_Laplace' #PATH da pasta no grid que incorpora as diferentes combinações
-BRKGAGenerations = 5000 #Number of generations to run the BRKGA algorithm
+GridFolderPATH = '/homes/up201202787/BRKGA_Asset_GRID_Laplace_random_new' #PATH da pasta no grid que incorpora as diferentes combinações
+BRKGAGenerations = 3000 #Number of generations to run the BRKGA algorithm
 BRKGAScenarios = 50 #Number of generated scenarios per generation
-BRKGASolutions = 50 #Number of generated solutions per generation
-ModelVariations = ["0 0 0", "1 0 0","0 1 0","0 0 1","1 1 1"] #Variantes do modelo que pretendemos quanto ao seu impacto nos resultados para uma determinada instancia
+BRKGASolutions_factor = 8 * 2 #Number of genes per period for the solution multiplied by a factor of 2 (o numero de genes da solucao por periodo * fator do BRKGA - Ver papers literatura)
+ModelVariations = ["0 0 0", "0 1 0", "0 0 1", "0 1 1"] #Variantes do modelo que pretendemos quanto ao seu impacto nos resultados para uma determinada instancia
 
 #Nível de risco da falha
 Penalty_multiplier = ["LowRisk","HighRisk"] #Relação de proporcionalidade entre o custo da falha e o custo de substituição para os dois níveis de risco (Custo Falha = Penalty_multiplier * Custo_substituicao)
 
 #Distribuicao do RUL
 #InstanceFamily = ["Clustered", "Concentrated", "Random"] #Caracterista da distribuição da condição inicial dos ativos
-InstanceFamily = ["Clustered"] #Caracterista da distribuição da condição inicial dos ativos
+InstanceFamily = ["Random"] #Caracterista da distribuição da condição inicial dos ativos
 
 #A primeira coluna diz respeito ao nivel de incerteza (ex: Low Uncertainty) e as restantes dizem respeito ao valor dos periodos considerados (T=5,T=10,T=20)
 UncertaintyLevel = ["LowUnc","HighUnc"] #Valor minimo para a variabilidade da degradação (atualizar se os T mudarem -> ver excel)
@@ -62,6 +62,9 @@ for Family in InstanceFamily: #Distribuição do RUL dos ativos
 
         #Atualizar o counter
         UncertaintyPeriodCount +=1
+
+        #Calcular o numero de soluções a gerar no BRKGA
+        BRKGASolutions = PlanningPeriods * BRKGASolutions_factor
 
         #Percorrer as combinações
         for AssetNumber in AssetNumberInstances: #Tipos de portfolio de ativos
