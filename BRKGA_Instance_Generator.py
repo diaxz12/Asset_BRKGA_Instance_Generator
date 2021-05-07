@@ -17,7 +17,7 @@ from scipy.optimize import fsolve
 import math
 
 #diretorio onde queremos colocar as instancias
-PATHInstancia='/Users/LuisDias/Desktop/Doutoramento DEGI/A-Papers LUIS DIAS/3_paper/5 - Resultados/BRKGA_Asset_GRID_Laplace_random_new/data'
+PATHInstancia='/Users/LuisDias/Desktop/Doutoramento DEGI/A-Papers LUIS DIAS/3_paper/5 - Resultados/BRKGA_Asset_GRID_Laplace_improved/data'
 
 #parametros do gerador de instancias
 NumeroInstancias = 1 #numero de instancias a gerar por cada classe de instancia (N[X])
@@ -34,8 +34,8 @@ RiskFreeRatePlus = 0.08 #Used rate to calculate the net present value of the ove
 Penalty_multiplier = [["LowRisk",2],["HighRisk",10]] #Relação de proporcionalidade entre o custo da falha e o custo de substituição para os dois níveis de risco (Custo Falha = Penalty_multiplier * Custo_substituicao)
 
 #Distribuicao do RUL
-#InstanceFamily = ["Clustered", "Concentrated", "Random"] #Caracterista da distribuição da condição inicial dos ativos
-InstanceFamily = ["Random"] #Caracterista da distribuição da condição inicial dos ativos
+InstanceFamily = ["Clustered", "Concentrated", "Random"] #Caracterista da distribuição da condição inicial dos ativos
+#InstanceFamily = ["Random"] #Caracterista da distribuição da condição inicial dos ativos
 ClusteredAssetsPortion = 0.5 #Indica a proporção de ativos que se encontram no cluster de má condição
 MinimumInitialConditionMultiplier = 0.10 #Condição mínima que é gerada para cada ativo (em proporção face a condição máxima)
 GoodConditionMultiplier = 0.70 #Condição mínima que é gerada para cada ativo para ser considerado como um ativo em boa condição (em proporção face a condição máxima)
