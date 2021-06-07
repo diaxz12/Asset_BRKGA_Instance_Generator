@@ -11,19 +11,19 @@
 import numpy as np
 
 #diretorio onde queremos colocar as instancias
-PATHJobs='/Users/LuisDias/Desktop/Doutoramento DEGI/A-Papers LUIS DIAS/3_paper/5 - Resultados/BRKGA_Asset_GRID_Laplace_improved/Job_scripts'
+PATHJobs='/Users/LuisDias/Desktop/Doutoramento DEGI/A-Papers LUIS DIAS/3_paper/5 - Resultados/BRKGA_Asset_GRID_Laplace_stopping_criterion/Job_scripts'
 
 #parametros do gerador de jobs
 NumeroInstancias = 1 #numero de instancias a gerar por cada classe de instancia (N[X])
-AssetNumberInstances=np.array([20]) #Lista do numero de ativos
-TimeWindow = np.array([5,10,20]) #Lista de Planning horizons
+AssetNumberInstances=np.array([30]) #Lista do numero de ativos
+TimeWindow = np.array([10]) #Lista de Planning horizons
 TimeLimit = 48 #Tempo limite que o job pode ser executado no grid (em Horas)
 NumberOfThreads = 4 #Número de CPU cores por job
 ComputerPartition = 'batch' #Partição de computadores do grid onde irá correr o job ('batch ou big)
 ComputerRAM = 8 #Tamanho da RAM que cada job tem disponível
-GridFolderPATH = '/homes/up201202787/BRKGA_Asset_GRID_Laplace_improved' #PATH da pasta no grid que incorpora as diferentes combinações
-BRKGAGenerations = 1000 #Number of generations to run the BRKGA algorithm
-BRKGAScenarios = 50 #Number of generated scenarios per generation
+GridFolderPATH = '/homes/up201202787/BRKGA_Asset_GRID_Laplace_stopping_criterion' #PATH da pasta no grid que incorpora as diferentes combinações
+BRKGAGenerations = 9999 #Number of generations to run the BRKGA algorithm
+BRKGAScenarios = 20 #Number of generated scenarios per generation
 BRKGASolutions_factor = 8 * 2 #Number of genes per period for the solution multiplied by a factor of 2 (o numero de genes da solucao por periodo * fator do BRKGA - Ver papers literatura)
 ModelVariations = ["0 0 0", "0 1 0", "0 0 1", "0 1 1"] #Variantes do modelo que pretendemos quanto ao seu impacto nos resultados para uma determinada instancia
 

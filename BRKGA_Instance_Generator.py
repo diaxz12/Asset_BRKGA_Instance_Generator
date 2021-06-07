@@ -17,12 +17,12 @@ from scipy.optimize import fsolve
 import math
 
 #diretorio onde queremos colocar as instancias
-PATHInstancia='/Users/LuisDias/Desktop/Doutoramento DEGI/A-Papers LUIS DIAS/3_paper/5 - Resultados/BRKGA_Asset_GRID_Laplace_improved/data'
+PATHInstancia='/Users/LuisDias/Desktop/Doutoramento DEGI/A-Papers LUIS DIAS/3_paper/5 - Resultados/BRKGA_Asset_GRID_Laplace_1000_gen/data'
 
 #parametros do gerador de instancias
-NumeroInstancias = 1 #numero de instancias a gerar por cada classe de instancia (N[X])
-AssetNumberInstances = np.array([20]) #Lista do numero de ativos
-TimeWindow = np.array([5,10,20]) #Lista de Planning horizons
+NumeroInstancias = 5 #numero de instancias a gerar por cada classe de instancia (N[X])
+AssetNumberInstances = np.array([30]) #Lista do numero de ativos
+TimeWindow = np.array([10]) #Lista de Planning horizons
 MaintenanceTypes = 3 #Tipos de manutenção a considerar
 AssetMaxHealth = 100 #Condição máxima dos ativos
 MaxReplacementCost = 400 #Intervalo superior do custo de substituição
