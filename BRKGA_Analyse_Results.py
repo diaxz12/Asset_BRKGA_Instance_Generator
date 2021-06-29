@@ -13,32 +13,59 @@ import os
 import numpy as np
 import matplotlib.pyplot as plt
 
+#Nome da pasta que guarda os resultados
+ResultsFolder = 'Tuning_resultados_500_gen'
+
 #diretorio onde queremos ler os resultados
-PATHInstancia = '/Users/LuisDias/Desktop/resultados_stopping_criterion/BRKGA_cplex/'
-PATH_benchmark = '/Users/LuisDias/Desktop/resultados_stopping_criterion/benchmark/'
+PATHInstancia = f'/Users/LuisDias/Desktop/{ResultsFolder}/BRKGA_cplex/'
+PATH_benchmark = f'/Users/LuisDias/Desktop/{ResultsFolder}/benchmark/'
 
 #Diretorio onde queremos guardar os resultados
-PATH_results = '/Users/LuisDias/Desktop/Doutoramento DEGI/A-Papers LUIS DIAS/3_paper/5 - Resultados/BRKGA_Asset_GRID_Laplace_stopping_criterion/resultados/'
+#PATH_results = f'/Users/LuisDias/Desktop/Doutoramento DEGI/A-Papers LUIS DIAS/3_paper/5 - Resultados/{ResultsFolder}/resultados/'
+PATH_results = f'/Users/LuisDias/Desktop/{ResultsFolder}/'
 
 #Caracterista da distribuição da condição inicial dos ativos
 InstanceFamily = ["Clustered", "Concentrated", "Random"]
 
 #Caracteristicas das instancias a analisar nos resultados
-CharacteristicList = ['Clustered','Concentrated','Random','N30','TW10','HighUnc','LowUnc','HighRisk','LowRisk','HighImp','LowImp']
-ColumnNames = ['Instance_type','Instance_type','Instance_type','Portfolio_size','Planning_horizon','Uncertainty_level','Uncertainty_level','Risk_level','Risk_level','Maintenance_level','Maintenance_level']
+CharacteristicList = ['Clustered','Concentrated','Random','N20','TW5','TW10','HighUnc','LowUnc','HighRisk','LowRisk','HighImp','LowImp']
+ColumnNames = ['Instance_type','Instance_type','Instance_type','Portfolio_size','Planning_horizon','Planning_horizon'
+    ,'Uncertainty_level','Uncertainty_level','Risk_level','Risk_level','Maintenance_level','Maintenance_level']
+
+#Caracteristicas da parameterizacao (soluções e cenários)
+Solution_Parameters_CharacteristicList = ['A1','A2','A5','Pe10','Pe17','Pe25','Pm10','Pm20','Pm30','rh50','rh65','rh80']
+Solution_Parameters_ColumnNames = ['Solution_size_factor','Solution_size_factor','Solution_size_factor',
+                          'Solution_Elite_proportion','Solution_Elite_proportion','Solution_Elite_proportion',
+                          'Solution_Mutant_proportion','Solution_Mutant_proportion','Solution_Mutant_proportion',
+                          'Solution_Inheritance_probability','Solution_Inheritance_probability','Solution_Inheritance_probability']
+
+Scenario_Parameters_CharacteristicList = ['Pe10','Pe17','Pe25','Pm10','Pm20','Pm30','rh50','rh65','rh80']
+Scenario_Parameters_ColumnNames = ['Scenario_Elite_proportion','Scenario_Elite_proportion','Scenario_Elite_proportion',
+                                   'Scenario_Mutant_proportion','Scenario_Mutant_proportion','Scenario_Mutant_proportion',
+                                   'Scenario_Inheritance_probability','Scenario_Inheritance_probability','Scenario_Inheritance_probability']
+
 
 ##################################################
 ###-----Funcoes para estudar os resultados-----###
 ##################################################
 
 #Funcao para agregar os resultados
-def join_results(FitnessData,PATHInstancia,Filename,colnames):
+def join_results(FitnessData,PATHInstancia,Filename):
 
     #Ler os resultados de uma instancia em particular
     Results = pd.read_csv(PATHInstancia + Filename, sep='\t', index_col=False)
 
     #Colocar versão do modelo BRKGA utilizado com base no nome da insancia!!!!
     Results['ModelVersion'] = Filename[0:6]
+
+    #Colocar a combinação de parâmetros (soluções e cenários)
+    Results['SolutionParameterization'] = Filename.split('_sol_')[1].split('_scen_')[0]
+    Results['ScenarioParameterization'] = Filename.split('_sol_')[1].split('_scen_')[1]
+
+    #Extrair caracteristicas das instancias
+    Results = get_instance_characteristics(Results, CharacteristicList, ColumnNames,'Instance')
+    Results = get_instance_characteristics(Results, Solution_Parameters_CharacteristicList, Solution_Parameters_ColumnNames, 'SolutionParameterization')
+    Results = get_instance_characteristics(Results, Scenario_Parameters_CharacteristicList, Scenario_Parameters_ColumnNames, 'ScenarioParameterization')
 
     #Agregar resultados
     NewFitnessData = FitnessData.append(Results)
@@ -59,7 +86,7 @@ def search_results_to_study(path_instancia,object_of_study,colnames, remove_firs
 
     #Ler todos os resultados e agregá-los numa lista
     for filename in File_list:
-        Results = join_results(Results,path_instancia,filename,colnames)
+        Results = join_results(Results,path_instancia,filename)
 
     #Verificar se é necessário retirar a primeira linha
     if remove_first_row == True:
@@ -72,9 +99,9 @@ def search_results_to_study(path_instancia,object_of_study,colnames, remove_firs
 def evaluate_benchmark_results(BenchmarkData, InitialScenarioBenchmarkValues, BRKGA_Values, FamilyType):
 
     #Filtrar pelas colunas de interesse
-    BenchmarkData = BenchmarkData.filter(items=['Instance','ModelVersion','Generation','Period','Time_window_Length','Accumulated_Fitness'])
-    InitialScenarioBenchmarkValues = InitialScenarioBenchmarkValues.filter(items=['Instance','ModelVersion','Generation','Period','Time_window_Length','Accumulated_Fitness'])
-    BRKGA_Values = BRKGA_Values.filter(items=['Instance','ModelVersion','Generation','Period','Time_window_Length','Accumulated_Fitness'])
+    BenchmarkData = BenchmarkData.filter(items=['Instance','ModelVersion','Generation','Period','Time_window_Length','Accumulated_Budget','Accumulated_Overbudget','Cplex_GAP'])
+    InitialScenarioBenchmarkValues = InitialScenarioBenchmarkValues.filter(items=['Instance','ModelVersion','Generation','Period','Time_window_Length','Accumulated_Budget','Accumulated_Overbudget','Cplex_GAP'])
+    BRKGA_Values = BRKGA_Values.filter(items=['Instance','ModelVersion','Generation','Period','Time_window_Length','Accumulated_Budget','Accumulated_Overbudget','Cplex_GAP'])
 
     #Filtrar para uma familia de instancias
     BenchmarkData = BenchmarkData[BenchmarkData['Instance'].str.contains(FamilyType)]
@@ -82,7 +109,7 @@ def evaluate_benchmark_results(BenchmarkData, InitialScenarioBenchmarkValues, BR
     BRKGA_Values = BRKGA_Values[BRKGA_Values['Instance'].str.contains(FamilyType)]
 
     #Converter as colunas numéricas para o formato correto
-    for variable in ['Generation','Period','Time_window_Length','Accumulated_Fitness']:
+    for variable in ['Generation','Period','Time_window_Length','Accumulated_Budget','Accumulated_Overbudget','Cplex_GAP']:
         BenchmarkData[variable] = pd.to_numeric(BenchmarkData[variable], errors='coerce')
         InitialScenarioBenchmarkValues[variable] = pd.to_numeric(InitialScenarioBenchmarkValues[variable], errors='coerce')
         BRKGA_Values[variable] = pd.to_numeric(BRKGA_Values[variable], errors='coerce')
@@ -102,9 +129,9 @@ def evaluate_benchmark_results(BenchmarkData, InitialScenarioBenchmarkValues, BR
     BRKGA_Values = BRKGA_Values.loc[(BRKGA_Values.LastPeriod == 0)]
 
     #Calcular o valor do fitness
-    BenchmarkData = BenchmarkData.groupby(["Instance", "ModelVersion"], as_index=False)["Accumulated_Fitness"].mean()
-    InitialScenarioBenchmarkValues = InitialScenarioBenchmarkValues.groupby(["Instance", "ModelVersion"], as_index=False)["Accumulated_Fitness"].mean()
-    BRKGA_Values = BRKGA_Values.groupby(["Instance", "ModelVersion"], as_index=False)["Accumulated_Fitness"].mean()
+    BenchmarkData = BenchmarkData.groupby(["Instance", "ModelVersion"], as_index=False)["Accumulated_Budget","Accumulated_Overbudget","Cplex_GAP"].mean()
+    InitialScenarioBenchmarkValues = InitialScenarioBenchmarkValues.groupby(["Instance", "ModelVersion"], as_index=False)["Accumulated_Budget","Accumulated_Overbudget"].mean()
+    BRKGA_Values = BRKGA_Values.groupby(["Instance", "ModelVersion"], as_index=False)["Accumulated_Budget","Accumulated_Overbudget"].mean()
 
     #Retirar a lista de instancias e variantes do modelo com solução benchmark
     ListaInstancias = np.unique(BenchmarkData['Instance'])
@@ -122,19 +149,20 @@ def evaluate_benchmark_results(BenchmarkData, InitialScenarioBenchmarkValues, BR
         for modelo in ListaModelVersion:
 
             #Analisar melhor solução caso exista
-            BenchmarkCombinationValue = BenchmarkData['Accumulated_Fitness'].loc[(BenchmarkData.Instance == instancia) & (BenchmarkData.ModelVersion == modelo)]
+            BenchmarkCombinationValue = BenchmarkData['Accumulated_Budget'].loc[(BenchmarkData.Instance == instancia) & (BenchmarkData.ModelVersion == modelo)]
 
             #Solução do método de solução
-            BaselineCombinationValue = InitialScenarioBenchmarkValues['Accumulated_Fitness'].loc[(InitialScenarioBenchmarkValues.Instance == instancia) & (InitialScenarioBenchmarkValues.ModelVersion == modelo)]
+            BaselineCombinationValue = InitialScenarioBenchmarkValues['Accumulated_Budget'].loc[(InitialScenarioBenchmarkValues.Instance == instancia) & (InitialScenarioBenchmarkValues.ModelVersion == modelo)]
 
             #Solução do método de solução
-            BRKGACombinationValue = BRKGA_Values['Accumulated_Fitness'].loc[(BRKGA_Values.Instance == instancia) & (BRKGA_Values.ModelVersion == modelo)]
+            BRKGACombinationValue = BRKGA_Values['Accumulated_Budget'].loc[(BRKGA_Values.Instance == instancia) & (BRKGA_Values.ModelVersion == modelo)] + BRKGA_Values['Accumulated_Overbudget'].loc[(BRKGA_Values.Instance == instancia) & (BRKGA_Values.ModelVersion == modelo)]
 
             #Calcular GAP caso existam os dois valores
             if (BenchmarkCombinationValue.empty == False) & (BaselineCombinationValue.empty == False):
+
                 # Calculo do GAP
-                BenchmarkValue = BenchmarkCombinationValue.values[0]
-                BaselineValue = BaselineCombinationValue.values[0]
+                BenchmarkValue = BenchmarkData['Accumulated_Budget'].loc[(BenchmarkData.Instance == instancia) & (BenchmarkData.ModelVersion == modelo)].values[0] + BenchmarkData['Accumulated_Overbudget'].loc[(BenchmarkData.Instance == instancia) & (BenchmarkData.ModelVersion == modelo)].values[0]
+                BaselineValue = InitialScenarioBenchmarkValues['Accumulated_Budget'].loc[(InitialScenarioBenchmarkValues.Instance == instancia) & (InitialScenarioBenchmarkValues.ModelVersion == modelo)].values[0] + InitialScenarioBenchmarkValues['Accumulated_Overbudget'].loc[(InitialScenarioBenchmarkValues.Instance == instancia) & (InitialScenarioBenchmarkValues.ModelVersion == modelo)].values[0]
                 GAP_result = (BenchmarkValue - BaselineValue) / (BenchmarkValue + 1)
 
                 #Alocar resultado do GAP
@@ -145,9 +173,10 @@ def evaluate_benchmark_results(BenchmarkData, InitialScenarioBenchmarkValues, BR
 
             #Calcular GAP caso existam os dois valores
             if (BenchmarkCombinationValue.empty == False) & (BRKGACombinationValue.empty == False):
+
                 # Calculo do GAP
-                BenchmarkValue = BenchmarkCombinationValue.values[0]
-                BaselineValue = BRKGACombinationValue.values[0]
+                BenchmarkValue = BenchmarkData['Accumulated_Budget'].loc[(BenchmarkData.Instance == instancia) & (BenchmarkData.ModelVersion == modelo)].values[0] + BenchmarkData['Accumulated_Overbudget'].loc[(BenchmarkData.Instance == instancia) & (BenchmarkData.ModelVersion == modelo)].values[0]
+                BaselineValue = BRKGA_Values['Accumulated_Budget'].loc[(BRKGA_Values.Instance == instancia) & (BRKGA_Values.ModelVersion == modelo)].values[0] + BRKGA_Values['Accumulated_Overbudget'].loc[(BRKGA_Values.Instance == instancia) & (BRKGA_Values.ModelVersion == modelo)].values[0]
                 GAP_result = (BenchmarkValue - BaselineValue) / (BenchmarkValue + 1)
 
                 #Alocar resultado do GAP
@@ -186,8 +215,9 @@ def ScenarioDiversityPlot(PATHInstancia, instance_name, PATH_scenario_diversity_
     plt.legend(['Initial Generation','Last Generation'])
     plt.xlabel("Best Solution")
     plt.ylabel("Worst Solution")
-    #plt.xlim(0)
-    #plt.ylim(0)
+
+    #guardar o plot
+    plt.savefig(f'{PATH_results}{instance_name}_diversity.png')
     plt.show()
 
 #Funcao para analisar a fitness da solução
@@ -208,8 +238,13 @@ def FitnessPlot(PATHInstancia, instance_name, PATH_fitness_values_filename, Fami
 
     #Corrigir as labels do plot
     plt.title(f'{FamilyType}_{instance_name}')
+    plt.ylim((2000,7000))
+    plt.xlim((0,200))
     plt.xlabel("Generation")
     plt.ylabel("Fitness_value")
+
+    #guardar o plot
+    plt.savefig(f'{PATH_results}{instance_name}_solution.png')
     plt.show()
 
 #Funcao para analisar a fitness do cenário
@@ -232,6 +267,9 @@ def ScenarioFitnessPlot(PATHInstancia, instance_name, PATH_fitness_values_filena
     plt.title(f'{FamilyType}_{instance_name}')
     plt.xlabel("Generation")
     plt.ylabel("Scenario_Fitness_value")
+
+    #guardar o plot
+    plt.savefig(f'{PATH_results}{instance_name}_scenario.png')
     plt.show()
 
 #Funcao para analisar a solution robustness
@@ -289,7 +327,7 @@ def evaluate_solution_robustness(BRKGAData_with_stopping_criterion, FamilyType, 
     return Resultados
 
 #Funcao para extrair as caracteristicas das instancias
-def get_instance_characteristics(data, CharacteristicList, ColumnNames):
+def get_instance_characteristics(data, CharacteristicList, ColumnNames, ReferenceColname):
 
     #Create characteristic if it does not exist
     for column in np.unique(ColumnNames):
@@ -298,12 +336,19 @@ def get_instance_characteristics(data, CharacteristicList, ColumnNames):
 
     #Get characteristic
     for characteristic, column in zip(CharacteristicList,ColumnNames):
-        data[column][data['Instance'].str.contains(characteristic)] = characteristic
+        data[column][data[ReferenceColname].str.contains(characteristic)] = characteristic
 
     return data
 
 #Funcao para construir os boxplots que permitem avaliar a robustez das soluções
-def plot_solution_robustness(data,ModelVersion,StudyCharacteristics):
+def plot_solution_robustness(data,ModelVersion,StudyCharacteristics,EvaluateModelVersion = False):
+
+    #Calcular o valor do fitness
+    data = data.groupby(["Instance", "ModelVersion"], as_index=False)["Fitness_with_stopping_criterion","Fitness_without_stopping_criterion"].mean()
+    data = data.reset_index()
+
+    #Calcular a diferença relativa entre o fitness com critério de paragem vs sem critério de paragem [GAP=(com_criterio-sem_criterio)/sem_criterio]
+    data['Relative_diference(%)'] = (data['Fitness_with_stopping_criterion']-data['Fitness_without_stopping_criterion'])/data['Fitness_without_stopping_criterion'] * 100
 
     #Filter the results for a specific model version
     data = data[data['ModelVersion'].str.contains(ModelVersion)]
@@ -311,26 +356,75 @@ def plot_solution_robustness(data,ModelVersion,StudyCharacteristics):
     #Generate boxplot data
     boxplot_data = []
     for characteristic in StudyCharacteristics:
-        boxplot_data.append(data['Fitness_without_stopping_criterion'][data['Instance'].str.contains(characteristic)])
-        boxplot_data.append(data['Fitness_with_stopping_criterion'][data['Instance'].str.contains(characteristic)])
+        if EvaluateModelVersion==False:
+            boxplot_data.append(data['Relative_diference(%)'][data['Instance'].str.contains(characteristic)])
+        else:
+            boxplot_data.append(data['Relative_diference(%)'][data['ModelVersion'].str.contains(characteristic)])
 
     # Creating plot
-    box = plt.boxplot(boxplot_data, patch_artist=True)
-    plt.xticks(range(1,len(StudyCharacteristics)*2+1,2),StudyCharacteristics)
-
-    colors = ['blue', 'green']
-    position = 0
-    for patch in box['boxes']:
-        patch.set_facecolor(colors[position])
-
-        #Color position
-        position += 1
-        if position > 1:
-            position = 0
+    plt.boxplot(boxplot_data, patch_artist=True)
+    plt.xticks(range(1,len(StudyCharacteristics)+1,1),StudyCharacteristics)
+    plt.ylim((-25,25))
+    plt.ylabel('Relative diference (%)')
 
     # show plot
     plt.title(f'{ModelVersion} - Solution Robustness')
     plt.show()
+
+#create function to calculate Manhattan distance (https://www.statology.org/manhattan-distance-python/)
+def manhattan(a,b):
+
+    #Calculate the difference between two vectors
+    distance = 0
+    for val1, val2 in zip(a,b):
+        distance += np.abs(int(val1)-int(val2))
+
+    return distance
+
+#Funcao para medir a dispersão dos cenários
+def meaure_diversity_dispersion(PATHInstancia, PATH_scenario_diversity_filename, FamilyType, generation):
+
+    #Ler os dados
+    scenario_diversity_data = pd.read_csv(PATHInstancia + PATH_scenario_diversity_filename, sep='\t')
+
+    #Filtrar o tipo de instancia
+    scenario_diversity_data = scenario_diversity_data[scenario_diversity_data['Instance'].str.contains(FamilyType)]
+
+    #Converter as colunas numéricas para o formato correto
+    scenario_diversity_data['Generation'] = pd.to_numeric(scenario_diversity_data['Generation'], errors='coerce')
+    scenario_diversity_data['Best_Solution_Value'] = pd.to_numeric(scenario_diversity_data['Best_Solution_Value'], errors='coerce')
+    scenario_diversity_data['Worst_Solution_Value'] = pd.to_numeric(scenario_diversity_data['Worst_Solution_Value'], errors='coerce')
+
+    #Dados da primeira geração
+    scenario_diversity_data = scenario_diversity_data.loc[(scenario_diversity_data.Generation == generation)].reset_index(drop=True)
+    NumberScenarios = scenario_diversity_data.shape[0]
+
+    #Calcular dispersão ideal para a primeira geração
+    delta_x = (scenario_diversity_data['Best_Solution_Value'].max() - scenario_diversity_data['Best_Solution_Value'].min())/(NumberScenarios-1)#delta ideal no eixo dos x
+    delta_y = (scenario_diversity_data['Worst_Solution_Value'].max() - scenario_diversity_data['Worst_Solution_Value'].min())/(NumberScenarios-1)#delta ideal no eixo dos y
+
+    #Calcular a posição dos pontos
+    scenario_diversity_data['Best_position_solution_value'] = np.arange(scenario_diversity_data['Best_Solution_Value'].min(),scenario_diversity_data['Best_Solution_Value'].max()+delta_x-1,delta_x)
+    scenario_diversity_data['Worst_position_solution_value'] = np.arange(scenario_diversity_data['Worst_Solution_Value'].min(),scenario_diversity_data['Worst_Solution_Value'].max()+delta_y-1,delta_y)
+
+    #Calcular o vetor de semelhança com base nos pontos que estão dentro dos quadrados
+    scenario_diversity_data['Vetor_pontos'] = np.zeros(NumberScenarios)
+    for i in range(1,NumberScenarios):
+        for j in range(0,NumberScenarios):
+            if (scenario_diversity_data['Best_Solution_Value'][j] < scenario_diversity_data['Best_position_solution_value'][i]) & (scenario_diversity_data['Best_Solution_Value'][j] >= scenario_diversity_data['Best_position_solution_value'][i-1]):
+                if (scenario_diversity_data['Worst_Solution_Value'][j] < scenario_diversity_data['Worst_position_solution_value'][i]) & (scenario_diversity_data['Worst_Solution_Value'][j] >= scenario_diversity_data['Worst_position_solution_value'][i-1]):
+                    scenario_diversity_data['Vetor_pontos'][i] += 1
+
+    #Calcular a distância de Manhattan entre o vetor de pontos ideal e o vetor de pontos obtido
+    distance = manhattan(np.ones(NumberScenarios),scenario_diversity_data['Vetor_pontos'])
+
+    return distance, scenario_diversity_data
+
+#testar função
+File_list = os.listdir(PATHInstancia)
+File_list_fitness =  [f for f in File_list if 'BRKGA_solution_fitness' in f]
+File_list_diversity =  [f for f in File_list if 'scenario_diversity' in f]
+distance, results = meaure_diversity_dispersion(PATHInstancia, File_list_diversity[1], 'Clustered', 1)
 
 ##########################################################
 ###-----Rotina para gerar os diferentes resultados-----###
@@ -361,7 +455,7 @@ BaselineValues = search_results_to_study(PATHInstancia, 'baseline_solution', ['I
                                                                                    'Maintenance_Types','Fitness','Defined_Budget','Over_Budget','RUL_Dispersion','Budget_GAP',
                                                                                    'End_of_Horizon_Effect','OM_Costs','OM_PlannedCosts','OM_UnlannedCosts','Accumulated_Fitness',
                                                                                    'Accumulated_Budget','Accumulated_Overbudget','Accumulated_RUL','Accumulated_Budget_Gap',
-                                                                                   'Accumulated_End_of_Horizon','Accumulated_OM_Costs','Accumulated_OM_PlannedCosts','Accumulated_OM_UnlannedCosts'],True)
+                                                                                   'Accumulated_End_of_Horizon','Accumulated_OM_Costs','Accumulated_OM_PlannedCosts','Accumulated_OM_UnlannedCosts','Cplex_GAP'],True)
 
 
 #Ler os resultados do benchmark
@@ -369,21 +463,21 @@ BenchmarkValues = search_results_to_study(PATH_benchmark, 'benchmark_solution.cs
                                                                                  'Maintenance_Types','Fitness','Defined_Budget','Over_Budget','RUL_Dispersion','Budget_GAP',
                                                                                  'End_of_Horizon_Effect','OM_Costs','OM_PlannedCosts','OM_UnlannedCosts','Accumulated_Fitness',
                                                                                  'Accumulated_Budget','Accumulated_Overbudget','Accumulated_RUL','Accumulated_Budget_Gap',
-                                                                                 'Accumulated_End_of_Horizon','Accumulated_OM_Costs','Accumulated_OM_PlannedCosts','Accumulated_OM_UnlannedCosts'],True)
+                                                                                 'Accumulated_End_of_Horizon','Accumulated_OM_Costs','Accumulated_OM_PlannedCosts','Accumulated_OM_UnlannedCosts','Cplex_GAP'],True)
 
 #Ler os resultados da solução baseline
 BaselineBenchmarkValues = search_results_to_study(PATH_benchmark, 'initial_scenario', ['Instance','Generation','Solution','Scenario','Period','Assets_number','Time_window_Length',
                                                                                  'Maintenance_Types','Fitness','Defined_Budget','Over_Budget','RUL_Dispersion','Budget_GAP',
                                                                                  'End_of_Horizon_Effect','OM_Costs','OM_PlannedCosts','OM_UnlannedCosts','Accumulated_Fitness',
                                                                                  'Accumulated_Budget','Accumulated_Overbudget','Accumulated_RUL','Accumulated_Budget_Gap',
-                                                                                 'Accumulated_End_of_Horizon','Accumulated_OM_Costs','Accumulated_OM_PlannedCosts','Accumulated_OM_UnlannedCosts'],True)
+                                                                                 'Accumulated_End_of_Horizon','Accumulated_OM_Costs','Accumulated_OM_PlannedCosts','Accumulated_OM_UnlannedCosts','Cplex_GAP'],True)
 
 #Ler os resultados da solução BRKGA
 BRKGA_Values = search_results_to_study(PATH_benchmark, 'benchmark_solution_BRKGA', ['Instance','Generation','Solution','Scenario','Period','Assets_number','Time_window_Length',
                                                                                                   'Maintenance_Types','Fitness','Defined_Budget','Over_Budget','RUL_Dispersion','Budget_GAP',
                                                                                                   'End_of_Horizon_Effect','OM_Costs','OM_PlannedCosts','OM_UnlannedCosts','Accumulated_Fitness',
                                                                                                   'Accumulated_Budget','Accumulated_Overbudget','Accumulated_RUL','Accumulated_Budget_Gap',
-                                                                                                  'Accumulated_End_of_Horizon','Accumulated_OM_Costs','Accumulated_OM_PlannedCosts','Accumulated_OM_UnlannedCosts'],True)
+                                                                                                  'Accumulated_End_of_Horizon','Accumulated_OM_Costs','Accumulated_OM_PlannedCosts','Accumulated_OM_UnlannedCosts','Cplex_GAP'],True)
 
 ####Analisar resultados
 
@@ -394,21 +488,13 @@ for name in InstanceFamily[1:]:
     GapResults = pd.concat([GapResults, NewGapResults])
 
 #Calcular a robustez dos resultados
-RobustnessResults = evaluate_solution_robustness(BaselineValues, InstanceFamily[0], 1000, 9999)
+RobustnessResults = evaluate_solution_robustness(BaselineValues, InstanceFamily[0], 1000, 999)
 for name in InstanceFamily[1:]:
-    NewRobustnessResults = evaluate_solution_robustness(BaselineValues, name, 1000, 9999)
+    NewRobustnessResults = evaluate_solution_robustness(BaselineValues, name, 1000, 999)
     RobustnessResults = pd.concat([RobustnessResults, NewRobustnessResults])
 
-#Extrair caracteristicas das instancias
-GapResults = get_instance_characteristics(GapResults, CharacteristicList, ColumnNames)
-RobustnessResults = get_instance_characteristics(RobustnessResults, CharacteristicList, ColumnNames)
-TimeBenchmarkValues = get_instance_characteristics(TimeBenchmarkValues, CharacteristicList, ColumnNames)
-TimeValues = get_instance_characteristics(TimeValues, CharacteristicList, ColumnNames)
-TimeSubProblemValues = get_instance_characteristics(TimeSubProblemValues, CharacteristicList, ColumnNames)
-StoppingCriterionValues = get_instance_characteristics(StoppingCriterionValues, CharacteristicList, ColumnNames)
-
 #Plot dos resultados
-instance_name = 'R0H1E0_N30TW10_HighUncHighRiskHighImp'
+instance_name = 'R0H0E0_N30TW10_HighUncLowRiskLowImp'
 
 # Analizar a diversidade dos cenários
 for name in InstanceFamily:
@@ -423,6 +509,13 @@ for name in InstanceFamily:
     ScenarioFitnessPlot(PATHInstancia, instance_name, f'{instance_name}_BRKGA_scenario_fitness.csv', name)
 
 #Analisar robustez das soluções para cada versão
+plot_solution_robustness(RobustnessResults,'',['R0H0E0','R0H1E0','R0H0E1','R0H1E1'],True)
+
+#Analisar robustez mediante o horizonte de planeamento
+plot_solution_robustness(RobustnessResults,'R0H0E0',['TW5','TW10'])
+plot_solution_robustness(RobustnessResults,'R0H0E1',['TW5','TW10'])
+
+#Analisar robustez das soluções para cada tipo de distribuição do RUL
 plot_solution_robustness(RobustnessResults,'R0H0E0',['Clustered','Concentrated','Random'])
 plot_solution_robustness(RobustnessResults,'R0H1E0',['Clustered','Concentrated','Random'])
 plot_solution_robustness(RobustnessResults,'R0H0E1',['Clustered','Concentrated','Random'])
@@ -443,3 +536,19 @@ TimeBenchmarkValues.to_csv(path_or_buf=f'{PATH_results}Tempo_computacional_bench
 TimeValues.to_csv(path_or_buf=f'{PATH_results}Tempo_computacional_BRKGA.csv',index=False)
 TimeSubProblemValues.to_csv(path_or_buf=f'{PATH_results}Tempo_computacional_BRKGA_sub_problem.csv',index=False)
 StoppingCriterionValues.to_csv(path_or_buf=f'{PATH_results}Stopping_criterion.csv',index=False)
+
+#Analise específica (este código depois é para retirar) ->falta distinguir por janela temporal e número de ativos
+File_list = os.listdir(PATHInstancia)
+File_list_fitness =  [f for f in File_list if 'BRKGA_solution_fitness' in f]
+File_list_diversity =  [f for f in File_list if 'scenario_diversity' in f]
+for file,diversity in zip(File_list_fitness,File_list_diversity):
+    PlotTitle = file.split('_sol_')[1].split('_scen_')[0] + "|" + file.split('_sol_')[1].split('_scen_')[1]
+    FitnessPlot(PATHInstancia, PlotTitle, file, 'Clustered')
+    ScenarioDiversityPlot(PATHInstancia, PlotTitle, diversity, 'Clustered')
+
+#Analise dispersão dos cenários (este código depois é para retirar)
+Distance_results = pd.DataFrame({'Instance': File_list_diversity,
+                                   'Distance': np.zeros(len(File_list_diversity))})
+
+for diversity in File_list_diversity:
+    Distance_results.loc[(Distance_results.Instance == diversity),'Distance'], results = meaure_diversity_dispersion(PATHInstancia, diversity, 'Clustered', 1)
