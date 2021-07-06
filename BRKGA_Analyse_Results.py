@@ -2,49 +2,8 @@
 ###Script to generate the results reports for the BRKGA algorithm ###
 #####################################################################
 
-
-############################################################################################
-###-----------------------------Parâmetros globais do código-----------------------------###
-############################################################################################
-
 #Bibliotecas a ser importadas
-import pandas as pd
-import os
-import numpy as np
-import matplotlib.pyplot as plt
-import imageio
-
-#Nome da pasta que guarda os resultados
-ResultsFolder = 'Tuning_resultados_500_gen_completo'
-
-#diretorio onde queremos ler os resultados
-PATHInstancia = f'/Users/LuisDias/Desktop/{ResultsFolder}/BRKGA_cplex/'
-PATH_benchmark = f'/Users/LuisDias/Desktop/{ResultsFolder}/benchmark/'
-
-#Diretorio onde queremos guardar os resultados
-#PATH_results = f'/Users/LuisDias/Desktop/Doutoramento DEGI/A-Papers LUIS DIAS/3_paper/5 - Resultados/{ResultsFolder}/resultados/'
-PATH_results = f'/Users/LuisDias/Desktop/{ResultsFolder}/'
-
-#Caracterista da distribuição da condição inicial dos ativos
-InstanceFamily = ["Clustered", "Concentrated", "Random"]
-
-#Caracteristicas das instancias a analisar nos resultados
-CharacteristicList = ['Clustered','Concentrated','Random','N20', 'N100','TW5','TW10','HighUnc','LowUnc','HighRisk','LowRisk','HighImp','LowImp']
-ColumnNames = ['Instance_type','Instance_type','Instance_type','Portfolio_size','Portfolio_size','Planning_horizon','Planning_horizon'
-    ,'Uncertainty_level','Uncertainty_level','Risk_level','Risk_level','Maintenance_level','Maintenance_level']
-
-#Caracteristicas da parameterizacao (soluções e cenários)
-Solution_Parameters_CharacteristicList = ['A1','A2','A5','Pe10','Pe17','Pe25','Pm10','Pm20','Pm30','rh50','rh65','rh80']
-Solution_Parameters_ColumnNames = ['Solution_size_factor','Solution_size_factor','Solution_size_factor',
-                          'Solution_Elite_proportion','Solution_Elite_proportion','Solution_Elite_proportion',
-                          'Solution_Mutant_proportion','Solution_Mutant_proportion','Solution_Mutant_proportion',
-                          'Solution_Inheritance_probability','Solution_Inheritance_probability','Solution_Inheritance_probability']
-
-Scenario_Parameters_CharacteristicList = ['Pe10','Pe17','Pe25','Pm10','Pm20','Pm30','rh50','rh65','rh80']
-Scenario_Parameters_ColumnNames = ['Scenario_Elite_proportion','Scenario_Elite_proportion','Scenario_Elite_proportion',
-                                   'Scenario_Mutant_proportion','Scenario_Mutant_proportion','Scenario_Mutant_proportion',
-                                   'Scenario_Inheritance_probability','Scenario_Inheritance_probability','Scenario_Inheritance_probability']
-
+from BRKGA_utils import *
 
 ##################################################
 ###-----Funcoes para estudar os resultados-----###
@@ -188,39 +147,6 @@ def evaluate_benchmark_results(BenchmarkData, InitialScenarioBenchmarkValues, BR
 
     return Resultados
 
-#Funcao para analisar a scenario diversity
-def ScenarioDiversityPlot(PATHInstancia, instance_name, PATH_scenario_diversity_filename, FamilyType):
-
-    #Ler os dados
-    scenario_diversity_data = pd.read_csv(PATHInstancia + PATH_scenario_diversity_filename, sep='\t')
-
-    #Filtrar o tipo de instancia
-    scenario_diversity_data = scenario_diversity_data[scenario_diversity_data['Instance'].str.contains(FamilyType)]
-
-    #Converter as colunas numéricas para o formato correto
-    scenario_diversity_data['Generation'] = pd.to_numeric(scenario_diversity_data['Generation'], errors='coerce')
-    scenario_diversity_data['Best_Solution_Value'] = pd.to_numeric(scenario_diversity_data['Best_Solution_Value'], errors='coerce')
-    scenario_diversity_data['Worst_Solution_Value'] = pd.to_numeric(scenario_diversity_data['Worst_Solution_Value'], errors='coerce')
-
-    #Plot dos dados da primeira geração
-    initial_scenario_diversity_data = scenario_diversity_data.loc[(scenario_diversity_data.Generation == 1)]
-    plt.plot(initial_scenario_diversity_data['Best_Solution_Value'], initial_scenario_diversity_data['Worst_Solution_Value'], 'o', color='red')
-
-    # Plot dos dados da última geração
-    LastPeriod = scenario_diversity_data['Generation'].max()
-    last_scenario_diversity_data = scenario_diversity_data.loc[(scenario_diversity_data.Generation == LastPeriod)]
-    plt.plot(last_scenario_diversity_data['Best_Solution_Value'], last_scenario_diversity_data['Worst_Solution_Value'], 'o', color='green')
-
-    #Corrigir as labels do plot
-    plt.title(f'{FamilyType}_{instance_name}')
-    plt.legend(['Initial Generation','Last Generation'])
-    plt.xlabel("Best Solution")
-    plt.ylabel("Worst Solution")
-
-    #guardar o plot
-    plt.savefig(f'{PATH_results}{instance_name}_diversity.png')
-    plt.show()
-
 #Funcao para analisar a fitness da solução
 def FitnessPlot(PATHInstancia, instance_name, PATH_fitness_values_filename, FamilyType):
 
@@ -327,20 +253,6 @@ def evaluate_solution_robustness(BRKGAData_with_stopping_criterion, FamilyType, 
 
     return Resultados
 
-#Funcao para extrair as caracteristicas das instancias
-def get_instance_characteristics(data, CharacteristicList, ColumnNames, ReferenceColname):
-
-    #Create characteristic if it does not exist
-    for column in np.unique(ColumnNames):
-        if column not in data:
-            data[column] = -1
-
-    #Get characteristic
-    for characteristic, column in zip(CharacteristicList,ColumnNames):
-        data[column][data[ReferenceColname].str.contains(characteristic)] = characteristic
-
-    return data
-
 #Funcao para construir os boxplots que permitem avaliar a robustez das soluções
 def plot_solution_robustness(data,ModelVersion,StudyCharacteristics,EvaluateModelVersion = False):
 
@@ -371,117 +283,6 @@ def plot_solution_robustness(data,ModelVersion,StudyCharacteristics,EvaluateMode
     # show plot
     plt.title(f'{ModelVersion} - Solution Robustness')
     plt.show()
-
-#create function to calculate Manhattan distance (https://www.statology.org/manhattan-distance-python/)
-def manhattan(a,b):
-
-    #Calculate the difference between two vectors
-    distance = 0
-    for val1, val2 in zip(a,b):
-        distance += np.abs(int(val1)-int(val2))
-
-    return distance
-
-#Funcao para medir a dispersão dos cenários
-def meaure_diversity_dispersion(PATHInstancia, PATH_scenario_diversity_filename, FamilyType, generation):
-
-    #Ler os dados
-    scenario_diversity_data = pd.read_csv(PATHInstancia + PATH_scenario_diversity_filename, sep='\t')
-
-    #Filtrar o tipo de instancia
-    scenario_diversity_data = scenario_diversity_data[scenario_diversity_data['Instance'].str.contains(FamilyType)]
-
-    #Converter as colunas numéricas para o formato correto
-    scenario_diversity_data['Generation'] = pd.to_numeric(scenario_diversity_data['Generation'], errors='coerce')
-    scenario_diversity_data['Best_Solution_Value'] = pd.to_numeric(scenario_diversity_data['Best_Solution_Value'], errors='coerce')
-    scenario_diversity_data['Worst_Solution_Value'] = pd.to_numeric(scenario_diversity_data['Worst_Solution_Value'], errors='coerce')
-
-    #Dados da primeira geração
-    scenario_diversity_data = scenario_diversity_data.loc[(scenario_diversity_data.Generation == generation)].reset_index(drop=True)
-    NumberScenarios = scenario_diversity_data.shape[0]
-
-    #Calcular dispersão ideal para a primeira geração
-    delta_x = (scenario_diversity_data['Best_Solution_Value'].max() - scenario_diversity_data['Best_Solution_Value'].min())/(NumberScenarios-1)#delta ideal no eixo dos x
-    delta_y = (scenario_diversity_data['Worst_Solution_Value'].max() - scenario_diversity_data['Worst_Solution_Value'].min())/(NumberScenarios-1)#delta ideal no eixo dos y
-
-    #Calcular a posição dos pontos
-    scenario_diversity_data['Best_position_solution_value'] = np.arange(scenario_diversity_data['Best_Solution_Value'].min(),scenario_diversity_data['Best_Solution_Value'].max()+delta_x-1,delta_x)
-    scenario_diversity_data['Worst_position_solution_value'] = np.arange(scenario_diversity_data['Worst_Solution_Value'].min(),scenario_diversity_data['Worst_Solution_Value'].max()+delta_y-1,delta_y)
-
-    #Calcular o vetor de semelhança com base nos pontos que estão dentro dos quadrados
-    scenario_diversity_data['Vetor_pontos'] = np.zeros(NumberScenarios)
-    for i in range(1,NumberScenarios):
-        for j in range(0,NumberScenarios):
-            if (scenario_diversity_data['Best_Solution_Value'][j] < scenario_diversity_data['Best_position_solution_value'][i]) & (scenario_diversity_data['Best_Solution_Value'][j] >= scenario_diversity_data['Best_position_solution_value'][i-1]):
-                if (scenario_diversity_data['Worst_Solution_Value'][j] < scenario_diversity_data['Worst_position_solution_value'][i]) & (scenario_diversity_data['Worst_Solution_Value'][j] >= scenario_diversity_data['Worst_position_solution_value'][i-1]):
-                    scenario_diversity_data['Vetor_pontos'][i] += 1
-
-    #Calcular a distância de Manhattan entre o vetor de pontos ideal e o vetor de pontos obtido
-    distance = manhattan(np.ones(NumberScenarios),scenario_diversity_data['Vetor_pontos'])
-
-    return distance, scenario_diversity_data
-
-#Funcao para medir os extremos dos cenários
-def meaure_extremes(PATHInstancia, PATH_scenario_diversity_filename, FamilyType, generation):
-
-    #Ler os dados
-    scenario_diversity_data = pd.read_csv(PATHInstancia + PATH_scenario_diversity_filename, sep='\t')
-
-    #Filtrar o tipo de instancia
-    scenario_diversity_data = scenario_diversity_data[scenario_diversity_data['Instance'].str.contains(FamilyType)]
-
-    #Converter as colunas numéricas para o formato correto
-    scenario_diversity_data['Generation'] = pd.to_numeric(scenario_diversity_data['Generation'], errors='coerce')
-    scenario_diversity_data['Best_Solution_Value'] = pd.to_numeric(scenario_diversity_data['Best_Solution_Value'], errors='coerce')
-    scenario_diversity_data['Worst_Solution_Value'] = pd.to_numeric(scenario_diversity_data['Worst_Solution_Value'], errors='coerce')
-
-    #Dados da primeira geração
-    scenario_diversity_data = scenario_diversity_data.loc[(scenario_diversity_data.Generation == generation)].reset_index(drop=True)
-    NumberScenarios = scenario_diversity_data.shape[0]
-
-    #Calcular dispersão ideal para a primeira geração
-    delta_x = (scenario_diversity_data['Best_Solution_Value'].max() - scenario_diversity_data['Best_Solution_Value'].min())#delta ideal no eixo dos x
-    delta_y = (scenario_diversity_data['Worst_Solution_Value'].max() - scenario_diversity_data['Worst_Solution_Value'].min())#delta ideal no eixo dos y
-
-    #Calcular a distância euclideana entre dois pontos extremos
-    distance = np.sqrt(delta_x**2+delta_y**2)
-
-    return distance
-
-#Função para criar um gif do diversity plot ao longo das gerações
-def build_gif_diversity_plot(PATHInstancia, PATH_scenario_diversity_filename, FamilyType, instance_name, generation):
-
-    #Ler os dados
-    scenario_diversity_data = pd.read_csv(PATHInstancia + PATH_scenario_diversity_filename, sep='\t')
-
-    #Filtrar o tipo de instancia
-    scenario_diversity_data = scenario_diversity_data[scenario_diversity_data['Instance'].str.contains(FamilyType)]
-
-    #Converter as colunas numéricas para o formato correto
-    scenario_diversity_data['Generation'] = pd.to_numeric(scenario_diversity_data['Generation'], errors='coerce')
-    scenario_diversity_data['Best_Solution_Value'] = pd.to_numeric(scenario_diversity_data['Best_Solution_Value'], errors='coerce')
-    scenario_diversity_data['Worst_Solution_Value'] = pd.to_numeric(scenario_diversity_data['Worst_Solution_Value'], errors='coerce')
-
-    #Plot dos dados para uma geração em específico
-    plot_data = scenario_diversity_data.loc[(scenario_diversity_data.Generation == generation)]
-
-    fig, ax = plt.subplots(figsize=(10,5))
-    ax.plot(plot_data['Best_Solution_Value'], plot_data['Worst_Solution_Value'], 'o', color='green')
-    ax.grid()
-    ax.set(xlabel='Best Solution', ylabel='Worst Solution',
-           title=f'{FamilyType}_{instance_name}_GEN_{generation}')
-
-    # IMPORTANT ANIMATION CODE HERE
-    # Used to keep the limits constant
-    ax.set_ylim(0, 15000)
-    ax.set_xlim(0, 10000)
-
-    # Used to return the plot as an image rray
-    fig.canvas.draw()       # draw the canvas, cache the renderer
-    image = np.frombuffer(fig.canvas.tostring_rgb(), dtype='uint8')
-    image  = image.reshape(fig.canvas.get_width_height()[::-1] + (3,))
-
-    return image
 
 ##########################################################
 ###-----Rotina para gerar os diferentes resultados-----###
@@ -604,59 +405,3 @@ for file,diversity in zip(File_list_fitness,File_list_diversity):
     PlotTitle = file.split('R0H0E0_')[1].split('_High')[0] + '|' + file.split('_sol_')[1].split('_scen_')[0] + "|" + file.split('_sol_')[1].split('_scen_')[1]
     FitnessPlot(PATHInstancia, PlotTitle, file, 'Clustered')
     ScenarioDiversityPlot(PATHInstancia, PlotTitle, diversity, 'Clustered')
-
-#Analise dispersão dos cenários (este código depois é para retirar)
-Distance_results = pd.DataFrame({'Instance': File_list_diversity,
-                                   'Initial_Distance': np.zeros(len(File_list_diversity)),
-                                   'Final_Distance': np.zeros(len(File_list_diversity)),
-                                   'Initial_Extremes': np.zeros(len(File_list_diversity)),
-                                   'Final_Extremes': np.zeros(len(File_list_diversity))})
-
-#Calcular a dispersao dos cenários
-for diversity in File_list_diversity:
-    try:
-        Distance_results.loc[(Distance_results.Instance == diversity),'Initial_Distance'], results = meaure_diversity_dispersion(PATHInstancia, diversity, 'Clustered', 1)
-        Distance_results.loc[(Distance_results.Instance == diversity),'Initial_Extremes'] = meaure_extremes(PATHInstancia, diversity, 'Clustered', 1)
-        Distance_results.loc[(Distance_results.Instance == diversity),'Final_Distance'], results = meaure_diversity_dispersion(PATHInstancia, diversity, 'Clustered', 999)
-        Distance_results.loc[(Distance_results.Instance == diversity),'Final_Extremes'] = meaure_extremes(PATHInstancia, diversity, 'Clustered', 999)
-    except:
-        print(f"A problem ocurred with instance {diversity}")
-
-#Calcular indicadores de improvement
-Distance_results['Imrovement_distance'] = (Distance_results['Initial_Distance']-Distance_results['Final_Distance'])/Distance_results['Initial_Distance']
-Distance_results['Imrovement_extremes'] = (Distance_results['Final_Extremes']-Distance_results['Initial_Extremes'])/Distance_results['Initial_Extremes']
-
-#Colocar a combinação de parâmetros (soluções e cenários)
-Distance_results['Instance'] = [file.replace(".csv","") for file in File_list_diversity]
-Distance_results['SolutionParameterization'] = [dist.split('_sol_')[1].split('_scen_')[0] for dist in Distance_results['Instance']]
-Distance_results['ScenarioParameterization'] = [dist.split('_sol_')[1].split('_scen_')[1] for dist in Distance_results['Instance']]
-
-#Extrair caracteristicas das instancias
-Distance_results = get_instance_characteristics(Distance_results, CharacteristicList, ColumnNames,'Instance')
-Distance_results = get_instance_characteristics(Distance_results, Solution_Parameters_CharacteristicList, Solution_Parameters_ColumnNames, 'SolutionParameterization')
-Distance_results = get_instance_characteristics(Distance_results, Scenario_Parameters_CharacteristicList, Scenario_Parameters_ColumnNames, 'ScenarioParameterization')
-
-#Guardar os resultados
-Distance_results.to_csv(path_or_buf=f'{PATH_results}Dispersion_results.csv',index=False)
-
-#Calcular a dispersão iterativa para uma instância em particular
-File_list = os.listdir(PATHInstancia)
-File_list_diversity =  [f for f in File_list if 'scenario_diversity_iteration' in f]
-Generations = 40
-Distance_results = pd.DataFrame({
-                                'Generation': np.zeros(Generations),
-                                 'Distance': np.zeros(Generations),
-                                 'Extremes': np.zeros(Generations)
-                                })
-
-#Calcular a dispersao dos cenários
-for gen in range(1,Generations):
-    Distance_results['Generation'][gen] = gen
-    Distance_results['Distance'][gen], results = meaure_diversity_dispersion(PATHInstancia, File_list_diversity[0], 'Clustered', gen)
-    Distance_results['Extremes'][gen] = meaure_extremes(PATHInstancia, File_list_diversity[0], 'Clustered', gen)
-
-Distance_results.to_csv(path_or_buf=f'{PATH_results}Dispersion_iteration_results.csv',index=False)
-
-#Test gif plot
-imageio.mimsave('./test.gif', [build_gif_diversity_plot(PATHInstancia, File_list_diversity[1], 'Clustered', 'Clustered',gen) for gen in range(40)], fps=1)
-imageio.mimsave('./test_2.gif', [build_gif_diversity_plot(PATHInstancia, File_list_diversity[0], 'Random', 'Random',gen) for gen in range(40)], fps=1)
