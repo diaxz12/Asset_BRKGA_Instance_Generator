@@ -55,10 +55,14 @@ ratioMargin = 0.15 #Margem do ratio para defenir o lower bound do impacto das ma
 UnitCostImprovementMultiplier = 1.5 #Margem minima para o custo da manutenção por unidade de recuperação da condição do ativo
 
 ############################################################################################
-###-----Funcoes para gerar a instancia do problema original e do problema aproximado-----###
+###-----Funções para gerar a instancia do problema original e do problema aproximado-----###
 ############################################################################################
 
-# função para gerar a matriz de degradação de cada ativo
+#Função para gerar a matriz de degradação de cada ativo com base na distribuição gamma
+#Parâmetros:
+#AssetNumber - Número de ativos no sistema
+#ParametrosGammaDistribution - Matriz com os parâmetros da distribuição gamma para cada ativo
+#SampleSize - Número de valores a gerar por ativo
 def simular_degradacao_linear(AssetNumber,ParametrosGammaDistribution,SampleSize=200):
 
     # guardar resultados da degradacao
@@ -75,7 +79,12 @@ def simular_degradacao_linear(AssetNumber,ParametrosGammaDistribution,SampleSize
 
     return matriz_degradacao
 
-#funcao que permite estimar os parametros da distribuição da Birnbaum-Saunders (BS) dados a média e desvio padrão especificados.
+#Função que permite estimar os parametros da distribuição da Birnbaum-Saunders (BS) dados a média e desvio padrão especificados.
+#Parâmetros:
+#TimeWindow - Janela temporal sujeita para análise
+#FailuresPerPlanningHorizon - Número de falhas esperada para cada ativo por janela temporal
+#Uncertainty - Nível de incerteza considerado na geração dos parâmetros da distribuição Birnbaum-Saunders (BS)
+#GuessStep - Parâmetro utilizado para resolver o sistema de equações postulado com base nos parâmetros anteriores.
 def estimar_parametros_BS(TimeWindow, FailuresPerPlanningHorizon, Uncertainty, GuessStep=0.25):
 
     #Calcular a média da distribuição Birnbaum-Saunders
@@ -111,7 +120,11 @@ def estimar_parametros_BS(TimeWindow, FailuresPerPlanningHorizon, Uncertainty, G
 
     return round(alpha,4), round(beta,4)
 
-#Sistema de equações necessários para encontrar os valores desejados
+#Função que permite construir o sistema de equações necessários para encontrar os valores desejados da distribuição gamma
+#Parâmetros:
+#vars - Incógnitas do sistema de equação
+#average_BS - Valor esperado da distribuição Birnbaum-Saunders (BS)
+#standard_deviation_BS - Desvio padrão da distribuição Birnbaum-Saunders (BS)
 def sistema_equacoes_parametros_BS(vars, average_BS, standard_deviation_BS):
 
     #Parâmetros da BS (neste sistema são variáveis a descobrir o valor desejado)
@@ -123,7 +136,13 @@ def sistema_equacoes_parametros_BS(vars, average_BS, standard_deviation_BS):
 
     return [Equation1, Equation2]
 
-# função que permite calcular os parametros da distribuição de gamma face os valores indicados para o numero de falhas por periodo (F) e a variabilidade da degradação (theta)
+#Função que permite calcular os parametros da distribuição de gamma face os valores indicados para o numero de falhas por periodo (F) e a variabilidade da degradação (theta)
+#Parâmetros:
+#TimeWindow - Janela temporal sujeita para análise
+#AssetMaxHealth - Condição máxima do ativo
+#FailuresPerPlanningHorizon - Número de falhas esperada para cada ativo por janela temporal
+#Uncertainty - Nível de incerteza considerado na geração dos parâmetros da distribuição Birnbaum-Saunders (BS)
+#VerifyPlot - Caso o valor seja 'True', é possível visualizar a distribuição do RUL com base nos parâmetros estimados para a distribuição gamma.
 def estimar_gamma_parametros(TimeWindow,AssetMaxHealth,FailuresPerPlanningHorizon,Uncertainty,VerifyPlot = True):
 
     #Estimar os parametros da distribuição do RUL de ativo
@@ -178,7 +197,12 @@ def estimar_gamma_parametros(TimeWindow,AssetMaxHealth,FailuresPerPlanningHorizo
 
     return GammaShapeParameter, GammaScaleParameter
 
-#funcao para estimar os parametros mais adequados para combinação do horizonte planeamento face a variabilidade desejada
+#Função para estimar os parametros mais adequados para combinação do horizonte planeamento face a variabilidade desejada
+#Parâmetros:
+#TimeWindowIncrement - Número de períodos a incrementar na geração da matriz de degradação.
+#UncertaintyIncrement - Nível de incerteza a incrementar na geração da matriz de degradação.
+#AssetMaxHealth - Condição máxima do ativo
+#FailuresPerPlanningHorizon - Número de falhas esperada para cada ativo por janela temporal
 def GenerateUncertaintyMatrix(TimeWindowIncrement,UncertaintyIncrement,AssetMaxHealth,FailuresPerPlanningHorizon):
 
 
@@ -241,8 +265,26 @@ def GenerateUncertaintyMatrix(TimeWindowIncrement,UncertaintyIncrement,AssetMaxH
 
     return MatrizParametros
 
-# função que permite criar o ficheiro de texto
-def criar_instancia_original_problem(InstancePath, InstanceID, AssetNumber, TimeWindow, Uncertainty, FailureRisk, Maintenance, MaintenanceTypes, RiskFreeRateMinus, RiskFreeRatePlus, SampleSize, InitialHealth, DegradationMatrix, CostReplacingAsset, CostFailure, CostAction, MaintenanceEffect, AssetAssetMaxHealth):
+#Função que permite criar o ficheiro de texto
+#Parâmetros:
+#InstancePath - Caminho onde queremos guardar a instância gerada
+#InstanceID - ID que identifica instâncias do mesmo tipo (normalmente é um digito a representar a ordem de geração).
+#AssetNumber - Número de ativos no sistema
+#TimeWindow - Janela temporal sujeita para análise
+#Uncertainty - Nível de incerteza necessário atribuida à instância (HighUnc or LowUnc)
+#FailureRisk - Nível de risco atribuida à instância (HighRisk or LowRisk)
+#Maintenance - Nível de impacto de manutenção na condição atribuida à instância (HighImp or LowImp)
+#MaintenanceTypes - Número de ações de manutenção.
+#RiskFreeRateMinus - Risk free rate utilizada para atualizar o valor do orçamento.
+#RiskFreeRatePlus - Taxa utilizada para atualizar o valor dos recursos extra que são utilizados.
+#SampleSize - Número de valores a gerar por ativo
+#InitialHealth - Vetor com a condição inicial de cada ativo no início da janela temporal.
+#CostReplacingAsset - Custo de substituição preventiva de cada ativo
+#CostFailure - Custo de substituição corretiva de cada ativo
+#CostAction - Custo das ações de manutenção
+#MaintenanceEffect - Impacto da manutenção na condição dos ativos
+#AssetMaxHealth - Condição máxima do ativo
+def criar_instancia_original_problem(InstancePath, InstanceID, AssetNumber, TimeWindow, Uncertainty, FailureRisk, Maintenance, MaintenanceTypes, RiskFreeRateMinus, RiskFreeRatePlus, SampleSize, InitialHealth, DegradationMatrix, CostReplacingAsset, CostFailure, CostAction, MaintenanceEffect, AssetMaxHealth):
 
     # Abrir instancias
     Instance = open(InstancePath + "_N" + str(AssetNumber) + "TW" + str(TimeWindow) + Uncertainty + FailureRisk + Maintenance + "_" + str(InstanceID) + ".txt", "w")
@@ -328,7 +370,7 @@ def criar_instancia_original_problem(InstancePath, InstanceID, AssetNumber, Time
             Instance.write("\n")
 
     # Asset Max Health
-    Instance.write("Asset Max Health\n" + str(AssetAssetMaxHealth) + "\n\n")
+    Instance.write("Asset Max Health\n" + str(AssetMaxHealth) + "\n\n")
 
     # Max Replacement Cost
     Instance.write("Max Replacement Cost\n" + str(max(CostReplacingAsset)) + "\n\n")
@@ -360,7 +402,17 @@ def criar_instancia_original_problem(InstancePath, InstanceID, AssetNumber, Time
 
     Instance.close()
 
-# função para validar as instancias geradas
+#Função para validar as instancias geradas
+#Parâmetros:
+#AssetNumber - Número de ativos no sistema
+#PlanningPeriods - Janela temporal sujeita para análise
+#InitialHealth - Vetor com a condição inicial de cada ativo no início da janela temporal.
+#Family - Tipo de distribuição do RUL utilizada para cada instância (Clustered, Random or Clustered)
+#CostReplacingAsset - Custo de substituição preventiva de cada ativo
+#CostAction - Custo das ações de manutenção
+#ParametrosGammaDistribution - Parâmetros da distribuição gamma de cada ativo
+#AssetDegradation - Degradação dos ativos
+#MaintenanceEffect - Impacto da manutenção na condição dos ativos
 def verificador_de_instancias(AssetNumber, PlanningPeriods, InitialHealth, Family, CostReplacingAsset, CostAction, ParametrosGammaDistribution, AssetDegradation, MaintenanceEffect):
 
     #Por defeito a resposta será afirmativa de forma a que a instância seja válida face os requesitos definidos

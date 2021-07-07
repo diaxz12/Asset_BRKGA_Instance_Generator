@@ -10,6 +10,10 @@ from BRKGA_utils import *
 ##################################################
 
 #Funcao para agregar os resultados
+#Parâmetros:
+#FitnessData - Dados a processar
+#PATHInstancia - Caminho para a pasta dos dados a processar
+#Filename - Nome do ficheiro a processar
 def join_results(FitnessData,PATHInstancia,Filename):
 
     #Ler os resultados de uma instancia em particular
@@ -33,6 +37,11 @@ def join_results(FitnessData,PATHInstancia,Filename):
     return NewFitnessData
 
 #Funcao para juntar os resultados das instancias para um dado ambito do estudo
+#Parâmetros:
+#path_instancia - Caminho para a pasta dos dados a processar
+#object_of_study - Tipo de ficheiro que queremos analisar (ex: Fitness das soluções, Tempo computacional)
+#colnames - Nome das colunas que estamos à espera de encontrar
+#remove_first_row - Valor 'True' caso queiramos remover a primeira linha dos dados
 def search_results_to_study(path_instancia,object_of_study,colnames, remove_first_row = False):
 
     #Ler todos os ficheiros que estão na pasta
@@ -56,6 +65,11 @@ def search_results_to_study(path_instancia,object_of_study,colnames, remove_firs
     return Results
 
 #Funcao para analisar os resultados do benchmark
+#Parâmetros:
+#BenchmarkData - Dados que referem ao modelo benchmark na população de cenários final
+#InitialScenarioBenchmarkValues - Dados que referem ao modelo benchmark na população de cenários inicial
+#BRKGA_Values - Resultados obtidos a partir do BRKGA
+#FamilyType - Tipo de instância que queremos analisar ('Clustered, 'Random', 'Concentrated')
 def evaluate_benchmark_results(BenchmarkData, InitialScenarioBenchmarkValues, BRKGA_Values, FamilyType):
 
     #Filtrar pelas colunas de interesse
@@ -148,6 +162,11 @@ def evaluate_benchmark_results(BenchmarkData, InitialScenarioBenchmarkValues, BR
     return Resultados
 
 #Funcao para analisar a fitness da solução
+#Parâmetros:
+#PATHInstancia - Caminho para a pasta dos dados a processar
+#instance_name - Nome da instância que queremos analisar
+#PATH_fitness_values_filename - Diretorio em que se encontra a instância
+#FamilyType - Tipo de instância que queremos analisar ('Clustered, 'Random', 'Concentrated')
 def FitnessPlot(PATHInstancia, instance_name, PATH_fitness_values_filename, FamilyType):
 
     #Ler os dados
@@ -175,6 +194,11 @@ def FitnessPlot(PATHInstancia, instance_name, PATH_fitness_values_filename, Fami
     plt.show()
 
 #Funcao para analisar a fitness do cenário
+#Parâmetros:
+#PATHInstancia - Caminho para a pasta dos dados a processar
+#instance_name - Nome da instância que queremos analisar
+#PATH_fitness_values_filename - Diretorio em que se encontra a instância
+#FamilyType - Tipo de instância que queremos analisar ('Clustered, 'Random', 'Concentrated')
 def ScenarioFitnessPlot(PATHInstancia, instance_name, PATH_fitness_values_filename, FamilyType):
 
     #Ler os dados
@@ -200,6 +224,11 @@ def ScenarioFitnessPlot(PATHInstancia, instance_name, PATH_fitness_values_filena
     plt.show()
 
 #Funcao para analisar a solution robustness
+#Parâmetros:
+#BRKGAData_with_stopping_criterion - Resultados do BRKGA utilizando o stopping criterion que foi desenvolvido
+#FamilyType - Tipo de instância que queremos analisar ('Clustered, 'Random', 'Concentrated')
+#Generation_without_stopping_criterion - Número de gerações utilizado como limite para os resultados do BRKGA sem critério de paragem.
+#Generation_with_stopping_criterion - Número de gerações utilizado como limite para os resultados do BRKGA com critério de paragem.
 def evaluate_solution_robustness(BRKGAData_with_stopping_criterion, FamilyType, Generation_without_stopping_criterion, Generation_with_stopping_criterion):
 
     #Filtrar pelas colunas de interesse
@@ -254,6 +283,11 @@ def evaluate_solution_robustness(BRKGAData_with_stopping_criterion, FamilyType, 
     return Resultados
 
 #Funcao para construir os boxplots que permitem avaliar a robustez das soluções
+#Parâmetros:
+#data - Resultados que queremos analisar
+#ModelVersion - Versão do modelo que queremos analisar (ex: R0H0E0)
+#StudyCharacteristics - Conjunto de características que queremos analisar na instância (ex: Uncertainty level).
+#EvaluateModelVersion - Valor 'True' se queremos analisar ao nível das versão do modelo. Caso contrário, analisamos ao nível da instância.
 def plot_solution_robustness(data,ModelVersion,StudyCharacteristics,EvaluateModelVersion = False):
 
     #Calcular o valor do fitness
@@ -398,10 +432,10 @@ StoppingCriterionValues.to_csv(path_or_buf=f'{PATH_results}Stopping_criterion.cs
 #######Esta secção é para melhorar na versão do código final##########
 
 #Analise específica (este código depois é para retirar) ->falta distinguir por janela temporal e número de ativos
-File_list = os.listdir(PATHInstancia)
-File_list_fitness =  [f for f in File_list if 'BRKGA_solution_fitness' in f]
-File_list_diversity =  [f for f in File_list if 'scenario_diversity' in f]
-for file,diversity in zip(File_list_fitness,File_list_diversity):
-    PlotTitle = file.split('R0H0E0_')[1].split('_High')[0] + '|' + file.split('_sol_')[1].split('_scen_')[0] + "|" + file.split('_sol_')[1].split('_scen_')[1]
-    FitnessPlot(PATHInstancia, PlotTitle, file, 'Clustered')
-    ScenarioDiversityPlot(PATHInstancia, PlotTitle, diversity, 'Clustered')
+# File_list = os.listdir(PATHInstancia)
+# File_list_fitness =  [f for f in File_list if 'BRKGA_solution_fitness' in f]
+# File_list_diversity =  [f for f in File_list if 'scenario_diversity' in f]
+# for file,diversity in zip(File_list_fitness,File_list_diversity):
+#     PlotTitle = file.split('R0H0E0_')[1].split('_High')[0] + '|' + file.split('_sol_')[1].split('_scen_')[0] + "|" + file.split('_sol_')[1].split('_scen_')[1]
+#     FitnessPlot(PATHInstancia, PlotTitle, file, 'Clustered')
+#     ScenarioDiversityPlot(PATHInstancia, PlotTitle, diversity, 'Clustered')

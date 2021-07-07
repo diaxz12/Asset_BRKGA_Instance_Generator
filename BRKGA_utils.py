@@ -53,6 +53,11 @@ File_list = os.listdir(PATHInstancia)
 ##################################################
 
 #Funcao para extrair as caracteristicas das instancias
+#Parâmetros:
+#data - Resultados que queremos analisar
+#CharacteristicList - Lista de características que queremos extrair a partir dos dados.
+#ColumnNames - Nome que queremos dar às características.
+#ReferenceColname - Coluna que contém a informação necessária para extrair as características (ex:'Instance')
 def get_instance_characteristics(data, CharacteristicList, ColumnNames, ReferenceColname):
 
     #Create characteristic if it does not exist
@@ -67,91 +72,105 @@ def get_instance_characteristics(data, CharacteristicList, ColumnNames, Referenc
     return data
 
 #Função que permite avaliar a dispersão dos resultados
+#Parâmetros:
+#PATHInstancia - Caminho para a pasta dos dados a processar
+#PATH_scenario_diversity_filename - Nome do ficheiro a processar
+#FamilyType - Tipo de instância que queremos analisar ('Clustered, 'Random', 'Concentrated')
+#generation - Indicar a geração dos resultados que queremos analisar.
+#plot_results - Valor 'True' caso queiramos ver os resultados de uma forma gráfica.
 def calculate_dispersion(PATHInstancia, PATH_scenario_diversity_filename, FamilyType, generation, plot_results = False):
 
-    #Ler os dados
-    scenario_diversity_data = pd.read_csv(PATHInstancia + PATH_scenario_diversity_filename, sep='\t')
+    try:
+        #Ler os dados
+        scenario_diversity_data = pd.read_csv(PATHInstancia + PATH_scenario_diversity_filename, sep='\t')
 
-    #Filtrar o tipo de instancia
-    scenario_diversity_data = scenario_diversity_data[scenario_diversity_data['Instance'].str.contains(FamilyType)]
+        #Filtrar o tipo de instancia
+        scenario_diversity_data = scenario_diversity_data[scenario_diversity_data['Instance'].str.contains(FamilyType)]
 
-    #Converter as colunas numéricas para o formato correto
-    scenario_diversity_data['Generation'] = pd.to_numeric(scenario_diversity_data['Generation'], errors='coerce')
-    scenario_diversity_data['Best_Solution_Value'] = pd.to_numeric(scenario_diversity_data['Best_Solution_Value'], errors='coerce')
-    scenario_diversity_data['Worst_Solution_Value'] = pd.to_numeric(scenario_diversity_data['Worst_Solution_Value'], errors='coerce')
+        #Converter as colunas numéricas para o formato correto
+        scenario_diversity_data['Generation'] = pd.to_numeric(scenario_diversity_data['Generation'], errors='coerce')
+        scenario_diversity_data['Best_Solution_Value'] = pd.to_numeric(scenario_diversity_data['Best_Solution_Value'], errors='coerce')
+        scenario_diversity_data['Worst_Solution_Value'] = pd.to_numeric(scenario_diversity_data['Worst_Solution_Value'], errors='coerce')
 
-    #Dados da primeira geração
-    scenario_diversity_data = scenario_diversity_data.loc[(scenario_diversity_data.Generation == generation)].reset_index(drop=True)
-    NumberScenarios = scenario_diversity_data.shape[0]
-    GridSize = int(NumberScenarios * 0.8)
+        #Dados da primeira geração
+        scenario_diversity_data = scenario_diversity_data.loc[(scenario_diversity_data.Generation == generation)].reset_index(drop=True)
+        NumberScenarios = scenario_diversity_data.shape[0]
+        GridSize = int(NumberScenarios * 0.8)
 
-    #Calcular dispersão ideal para a primeira geração
-    delta_x = (scenario_diversity_data['Best_Solution_Value'].max() - scenario_diversity_data['Best_Solution_Value'].min())/GridSize#delta ideal no eixo dos x
-    delta_y = (scenario_diversity_data['Worst_Solution_Value'].max() - scenario_diversity_data['Worst_Solution_Value'].min())/GridSize#delta ideal no eixo dos y
+        #Calcular dispersão ideal para a primeira geração
+        delta_x = (scenario_diversity_data['Best_Solution_Value'].max() - scenario_diversity_data['Best_Solution_Value'].min())/GridSize#delta ideal no eixo dos x
+        delta_y = (scenario_diversity_data['Worst_Solution_Value'].max() - scenario_diversity_data['Worst_Solution_Value'].min())/GridSize#delta ideal no eixo dos y
 
-    #Criar a grelha que irá permitir verificar a localização dos pontos
-    x_axis_grid_coordinates = np.arange(scenario_diversity_data['Best_Solution_Value'].min()-delta_x,scenario_diversity_data['Best_Solution_Value'].max()+delta_x,delta_x)
-    y_axis_grid_coordinates = np.arange(scenario_diversity_data['Worst_Solution_Value'].min()-delta_y,scenario_diversity_data['Worst_Solution_Value'].max()+delta_y,delta_y)
+        #Criar a grelha que irá permitir verificar a localização dos pontos
+        x_axis_grid_coordinates = np.arange(scenario_diversity_data['Best_Solution_Value'].min()-delta_x,scenario_diversity_data['Best_Solution_Value'].max()+delta_x,delta_x)
+        y_axis_grid_coordinates = np.arange(scenario_diversity_data['Worst_Solution_Value'].min()-delta_y,scenario_diversity_data['Worst_Solution_Value'].max()+delta_y,delta_y)
 
-    #Calcular a dispersão na grelha
-    result_grid = np.zeros(GridSize**2)
-    counter = 0
-    for y in range(1,GridSize):
-        for x in range(1,GridSize):
-            for v in range(0,NumberScenarios):
-                if (scenario_diversity_data['Best_Solution_Value'][v] >= x_axis_grid_coordinates[x-1]) & (scenario_diversity_data['Best_Solution_Value'][v] < x_axis_grid_coordinates[x]):
-                    if (scenario_diversity_data['Worst_Solution_Value'][v] >= y_axis_grid_coordinates[y-1]) & (scenario_diversity_data['Worst_Solution_Value'][v] < y_axis_grid_coordinates[y]):
-                        result_grid[counter] = result_grid[counter] + 1
-            #atualizar o counter
-            counter += 1
+        #Calcular a dispersão na grelha
+        result_grid = np.zeros(GridSize**2)
+        counter = 0
+        for y in range(1,GridSize):
+            for x in range(1,GridSize):
+                for v in range(0,NumberScenarios):
+                    if (scenario_diversity_data['Best_Solution_Value'][v] >= x_axis_grid_coordinates[x-1]) & (scenario_diversity_data['Best_Solution_Value'][v] < x_axis_grid_coordinates[x]):
+                        if (scenario_diversity_data['Worst_Solution_Value'][v] >= y_axis_grid_coordinates[y-1]) & (scenario_diversity_data['Worst_Solution_Value'][v] < y_axis_grid_coordinates[y]):
+                            result_grid[counter] = result_grid[counter] + 1
+                #atualizar o counter
+                counter += 1
 
-    #Calcular o número de pontos que estão dentro de circunferências (basicamente têm uma distância euclideana ao ponto mais próximo inferior à diagonal do quadrado da grelha)
-    distance_limit = np.sqrt(delta_x**2+delta_y**2)
-    number_of_conquered_circles = 0
-    for point in range(0,NumberScenarios-1):
-        for v in range(point+1,NumberScenarios):
-            euclidean_distance= np.sqrt((scenario_diversity_data['Best_Solution_Value'][point]-scenario_diversity_data['Best_Solution_Value'][v])**2
-                                        +(scenario_diversity_data['Worst_Solution_Value'][point]-scenario_diversity_data['Worst_Solution_Value'][v])**2)
-            if euclidean_distance < distance_limit:
-                number_of_conquered_circles += 1
+        #Calcular o número de pontos que estão dentro de circunferências (basicamente têm uma distância euclideana ao ponto mais próximo inferior à diagonal do quadrado da grelha)
+        distance_limit = np.sqrt(delta_x**2+delta_y**2)
+        number_of_conquered_circles = 0
+        for point in range(0,NumberScenarios-1):
+            for v in range(point+1,NumberScenarios):
+                euclidean_distance= np.sqrt((scenario_diversity_data['Best_Solution_Value'][point]-scenario_diversity_data['Best_Solution_Value'][v])**2
+                                            +(scenario_diversity_data['Worst_Solution_Value'][point]-scenario_diversity_data['Worst_Solution_Value'][v])**2)
+                if euclidean_distance < distance_limit:
+                    number_of_conquered_circles += 1
 
 
-    #Scale dos valores com base no máximo e no mínimo
-    std_scenario_diversity_data = scenario_diversity_data.copy()
-    WorstValue = np.array([std_scenario_diversity_data['Worst_Solution_Value'].max()]*NumberScenarios)
-    BestValue = np.array([std_scenario_diversity_data['Best_Solution_Value'].min()]*NumberScenarios)
-    std_scenario_diversity_data['Worst_Solution_Value'] = (np.array(scenario_diversity_data['Worst_Solution_Value'])-BestValue)/(WorstValue-BestValue)
-    std_scenario_diversity_data['Best_Solution_Value'] = (np.array(scenario_diversity_data['Best_Solution_Value'])-BestValue)/(WorstValue-BestValue)
+        #Scale dos valores com base no máximo e no mínimo
+        std_scenario_diversity_data = scenario_diversity_data.copy()
+        WorstValue = np.array([std_scenario_diversity_data['Worst_Solution_Value'].max()]*NumberScenarios)
+        BestValue = np.array([std_scenario_diversity_data['Best_Solution_Value'].min()]*NumberScenarios)
+        std_scenario_diversity_data['Worst_Solution_Value'] = (np.array(scenario_diversity_data['Worst_Solution_Value'])-BestValue)/(WorstValue-BestValue)
+        std_scenario_diversity_data['Best_Solution_Value'] = (np.array(scenario_diversity_data['Best_Solution_Value'])-BestValue)/(WorstValue-BestValue)
 
-    #Calcular o desvio padrão das distâncias ao ponto mais perto
-    result_std = np.zeros(NumberScenarios-1)
-    std_scenario_diversity_data = std_scenario_diversity_data.sort_values(by=['Best_Solution_Value']).reset_index(drop=True)
-    for v in range(0,NumberScenarios-1):
-        result_std[v] = np.sqrt((std_scenario_diversity_data['Best_Solution_Value'][v]-std_scenario_diversity_data['Best_Solution_Value'][v+1])**2
-                                +(std_scenario_diversity_data['Worst_Solution_Value'][v]-std_scenario_diversity_data['Worst_Solution_Value'][v+1])**2)
+        #Calcular o desvio padrão das distâncias ao ponto mais perto
+        result_std = np.zeros(NumberScenarios-1)
+        std_scenario_diversity_data = std_scenario_diversity_data.sort_values(by=['Best_Solution_Value']).reset_index(drop=True)
+        for v in range(0,NumberScenarios-1):
+            result_std[v] = np.sqrt((std_scenario_diversity_data['Best_Solution_Value'][v]-std_scenario_diversity_data['Best_Solution_Value'][v+1])**2
+                                    +(std_scenario_diversity_data['Worst_Solution_Value'][v]-std_scenario_diversity_data['Worst_Solution_Value'][v+1])**2)
 
-    #Calcular dispersão com base na grelha (o número máxixo é igual ao número de cenários menos os dois extremos que são criados)
-    number_of_conquered_squares = len(result_grid[result_grid>0])
-    distance_square_root = round(result_std.std(),4)
+        #Calcular dispersão com base na grelha (o número máxixo é igual ao número de cenários menos os dois extremos que são criados)
+        number_of_conquered_squares = len(result_grid[result_grid>0])
+        distance_square_root = round(result_std.std(),4)
 
-    #Construção do plot com os quadrados
-    Plot_title = f'points={number_of_conquered_squares} | std={distance_square_root}  | Overlaped_circles={number_of_conquered_circles}'
-    if plot_results == True:
-        plt.figure()
-        fig = plt.figure()
-        ax = fig.gca()
-        ax.set(xlabel='Best Solution', ylabel='Worst Solution',title=f'{Plot_title}')
-        ax.set_xlim(xmin=x_axis_grid_coordinates.min(),xmax=x_axis_grid_coordinates.max())
-        ax.set_ylim(ymin=y_axis_grid_coordinates.min(),ymax=y_axis_grid_coordinates.max())
-        ax.set_xticks(x_axis_grid_coordinates)
-        ax.set_yticks(y_axis_grid_coordinates)
-        plt.plot(scenario_diversity_data['Best_Solution_Value'], scenario_diversity_data['Worst_Solution_Value'], 'ro')
-        plt.grid()
-        plt.show()
+        #Construção do plot com os quadrados
+        Plot_title = f'points={number_of_conquered_squares} | std={distance_square_root}  | Overlaped_circles={number_of_conquered_circles}'
+        if plot_results == True:
+            plt.figure()
+            fig = plt.figure()
+            ax = fig.gca()
+            ax.set(xlabel='Best Solution', ylabel='Worst Solution',title=f'{Plot_title}')
+            ax.set_xlim(xmin=x_axis_grid_coordinates.min(),xmax=x_axis_grid_coordinates.max())
+            ax.set_ylim(ymin=y_axis_grid_coordinates.min(),ymax=y_axis_grid_coordinates.max())
+            ax.set_xticks(x_axis_grid_coordinates)
+            ax.set_yticks(y_axis_grid_coordinates)
+            plt.plot(scenario_diversity_data['Best_Solution_Value'], scenario_diversity_data['Worst_Solution_Value'], 'ro')
+            plt.grid()
+            plt.show()
+    except:
+        number_of_conquered_squares,distance_square_root, number_of_conquered_circles = '-','-','-'
 
     return number_of_conquered_squares,distance_square_root, number_of_conquered_circles
 
 #Funcao para analisar a scenario diversity
+#Parâmetros:
+#PATHInstancia - Caminho para a pasta dos dados a processar
+#instance_name - Nome da instância a analisar
+#PATH_scenario_diversity_filename - Nome do ficheiro a processar
+#FamilyType - Tipo de instância que queremos analisar ('Clustered, 'Random', 'Concentrated')
 def ScenarioDiversityPlot(PATHInstancia, instance_name, PATH_scenario_diversity_filename, FamilyType):
 
     #Ler os dados
@@ -185,6 +204,9 @@ def ScenarioDiversityPlot(PATHInstancia, instance_name, PATH_scenario_diversity_
     plt.show()
 
 #create function to calculate Manhattan distance (https://www.statology.org/manhattan-distance-python/) - old functions
+#Parâmetros:
+#a - Vetor A
+#b - Vetor B
 def manhattan(a,b):
 
     #Calculate the difference between two vectors
@@ -195,6 +217,11 @@ def manhattan(a,b):
     return distance
 
 #Funcao para medir a dispersão dos cenários - old functions
+#Parâmetros:
+#PATHInstancia - Caminho para a pasta dos dados a processar
+#PATH_scenario_diversity_filename - Nome do ficheiro a processar
+#FamilyType - Tipo de instância que queremos analisar ('Clustered, 'Random', 'Concentrated')
+#generation - Indicar a geração dos resultados que queremos analisar.
 def meaure_diversity_dispersion(PATHInstancia, PATH_scenario_diversity_filename, FamilyType, generation):
 
     #Ler os dados
@@ -234,6 +261,11 @@ def meaure_diversity_dispersion(PATHInstancia, PATH_scenario_diversity_filename,
     return distance, scenario_diversity_data
 
 #Funcao para medir os extremos dos cenários
+#Parâmetros:
+#PATHInstancia - Caminho para a pasta dos dados a processar
+#PATH_scenario_diversity_filename - Nome do ficheiro a processar
+#FamilyType - Tipo de instância que queremos analisar ('Clustered, 'Random', 'Concentrated')
+#generation - Indicar a geração dos resultados que queremos analisar.
 def meaure_extremes(PATHInstancia, PATH_scenario_diversity_filename, FamilyType, generation):
 
     #Ler os dados
@@ -261,7 +293,12 @@ def meaure_extremes(PATHInstancia, PATH_scenario_diversity_filename, FamilyType,
     return distance
 
 #Função para criar um gif do diversity plot ao longo das gerações
-def build_gif_diversity_plot(PATHInstancia, PATH_scenario_diversity_filename, FamilyType, instance_name, generation):
+#Parâmetros:
+#PATHInstancia - Caminho para a pasta dos dados a processar
+#PATH_scenario_diversity_filename - Nome do ficheiro a processar
+#FamilyType - Tipo de instância que queremos analisar ('Clustered, 'Random', 'Concentrated')
+#generation - Indicar a geração dos resultados que queremos analisar.
+def build_gif_diversity_plot(PATHInstancia, PATH_scenario_diversity_filename, FamilyType, generation):
 
     #Ler os dados
     scenario_diversity_data = pd.read_csv(PATHInstancia + PATH_scenario_diversity_filename, sep='\t')
@@ -279,8 +316,8 @@ def build_gif_diversity_plot(PATHInstancia, PATH_scenario_diversity_filename, Fa
     plot_data = scenario_diversity_data.loc[(scenario_diversity_data.Generation == generation)]
 
     #Calcular as métricas chave da diversidade dos cenários
-    number_of_conquered_squares, distance_square_root, number_of_conquered_circles, = calculate_dispersion(PATHInstancia, PATH_scenario_diversity_filename, 'Clustered', generation)
-    title = f'Genation={generation} | Squares={number_of_conquered_squares} | std={distance_square_root}  | Circles={number_of_conquered_circles}'
+    number_of_conquered_squares, distance_square_root, number_of_conquered_circles, = calculate_dispersion(PATHInstancia, PATH_scenario_diversity_filename, FamilyType, generation)
+    title = f'Generation={generation} | Squares={number_of_conquered_squares} | std={distance_square_root}  | Circles={number_of_conquered_circles}'
 
     #Construição da notação do gráfico
     fig, ax = plt.subplots(figsize=(10,5))
