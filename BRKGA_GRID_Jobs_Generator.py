@@ -11,15 +11,15 @@
 import numpy as np
 
 #Nome da pasta que guarda as instancias
-InstancesFolder = 'Testes_BRKGA_Asset_GRID_Laplace_500_gen'
+InstancesFolder = 'Final_BRKGA_version'
 
 #diretorio onde queremos colocar as instancias
 PATHJobs=f'/Users/LuisDias/Desktop/Doutoramento DEGI/A-Papers LUIS DIAS/3_paper/5 - Resultados/{InstancesFolder}/Job_scripts'
 
 #parametros do gerador de jobs
 NumeroInstancias = 1 #numero de instancias a gerar por cada classe de instancia (N[X])
-AssetNumberInstances=np.array([30]) #Lista do numero de ativos
-TimeWindow = np.array([10]) #Lista de Planning horizons
+AssetNumberInstances=np.array([30,100]) #Lista do numero de ativos
+TimeWindow = np.array([5,10]) #Lista de Planning horizons
 TimeLimit = 48 #Tempo limite que o job pode ser executado no grid (em Horas)
 NumberOfThreads = 4 #Número de CPU cores por job
 ComputerPartition = 'batch' #Partição de computadores do grid onde irá correr o job ('batch ou big)
@@ -32,21 +32,17 @@ BRKGASolutions_factor = 8 * 2 #Number of genes per period for the solution multi
 ModelVariations = ["0 0 0"]
 
 #Nível de risco da falha
-#Penalty_multiplier = ["LowRisk","HighRisk"] #Relação de proporcionalidade entre o custo da falha e o custo de substituição para os dois níveis de risco (Custo Falha = Penalty_multiplier * Custo_substituicao)
-Penalty_multiplier = ["HighRisk"]
+Penalty_multiplier = ["LowRisk","HighRisk"] #Relação de proporcionalidade entre o custo da falha e o custo de substituição para os dois níveis de risco (Custo Falha = Penalty_multiplier * Custo_substituicao)
 
 #Distribuicao do RUL
-#InstanceFamily = ["Clustered", "Concentrated", "Random"] #Caracterista da distribuição da condição inicial dos ativos
-InstanceFamily = ["Clustered"] #Caracterista da distribuição da condição inicial dos ativos
+InstanceFamily = ["Clustered", "Concentrated", "Random"] #Caracterista da distribuição da condição inicial dos ativos
 
 #A primeira coluna diz respeito ao nivel de incerteza (ex: Low Uncertainty) e as restantes dizem respeito ao valor dos periodos considerados (T=5,T=10,T=20)
-#UncertaintyLevel = ["LowUnc","HighUnc"] #Valor minimo para a variabilidade da degradação (atualizar se os T mudarem -> ver excel)
-UncertaintyLevel = ["HighUnc"]
+UncertaintyLevel = ["LowUnc","HighUnc"] #Valor minimo para a variabilidade da degradação (atualizar se os T mudarem -> ver excel)
 
 #Manutencao
 #A primeira coluna diz respeito à eficácia da manutenção (Low impact or high impact) e as restantes ao ratio imposto para o tipo de ação de manutenção
-#ratio = ["LowImp","HighImp"] #Define o impacto da manutenção nos ativos
-ratio = ["LowImp"] #Define o impacto da manutenção nos ativos
+ratio = ["LowImp","HighImp"] #Define o impacto da manutenção nos ativos
 
 #Hiperparâmetros do BRKGA
 SolutionProportionMultiplier = [2]

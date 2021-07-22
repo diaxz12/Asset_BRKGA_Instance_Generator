@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import imageio
 
 #Nome da pasta que guarda os resultados
-ResultsFolder = 'Tuning_resultados_stopping_criterion_completo'
+ResultsFolder = 'Testes_resultados_500_gen'
 
 #diretorio onde queremos ler os resultados
 PATHInstancia = f'/Users/LuisDias/Desktop/{ResultsFolder}/BRKGA_cplex/'
@@ -132,10 +132,12 @@ def calculate_dispersion(PATHInstancia, PATH_scenario_diversity_filename, Family
         std_scenario_diversity_data = scenario_diversity_data.copy()
         WorstValue = np.array([std_scenario_diversity_data['Worst_Solution_Value'].max()]*NumberScenarios)
         BestValue = np.array([std_scenario_diversity_data['Best_Solution_Value'].min()]*NumberScenarios)
-        std_scenario_diversity_data['Worst_Solution_Value'] = (np.array(scenario_diversity_data['Worst_Solution_Value'])-BestValue)/(WorstValue-BestValue)
-        std_scenario_diversity_data['Best_Solution_Value'] = (np.array(scenario_diversity_data['Best_Solution_Value'])-BestValue)/(WorstValue-BestValue)
+        #std_scenario_diversity_data['Worst_Solution_Value'] = (np.array(scenario_diversity_data['Worst_Solution_Value'])-BestValue)/(WorstValue-BestValue)
+        std_scenario_diversity_data['Worst_Solution_Value'] = np.array(scenario_diversity_data['Worst_Solution_Value'])
+        #std_scenario_diversity_data['Best_Solution_Value'] = (np.array(scenario_diversity_data['Best_Solution_Value'])-BestValue)/(WorstValue-BestValue)
+        std_scenario_diversity_data['Best_Solution_Value'] = np.array(scenario_diversity_data['Best_Solution_Value'])
 
-        #Calcular o desvio padrão das distâncias ao ponto mais perto
+        #Calcular a variância das distâncias ao ponto mais perto
         result_std = np.zeros(NumberScenarios-1)
         std_scenario_diversity_data = std_scenario_diversity_data.sort_values(by=['Best_Solution_Value']).reset_index(drop=True)
         for v in range(0,NumberScenarios-1):
@@ -144,7 +146,7 @@ def calculate_dispersion(PATHInstancia, PATH_scenario_diversity_filename, Family
 
         #Calcular dispersão com base na grelha (o número máxixo é igual ao número de cenários menos os dois extremos que são criados)
         number_of_conquered_squares = len(result_grid[result_grid>0])
-        distance_square_root = round(result_std.std(),4)
+        distance_square_root = round(result_std.var(),4)
 
         #Construção do plot com os quadrados
         Plot_title = f'points={number_of_conquered_squares} | std={distance_square_root}  | Overlaped_circles={number_of_conquered_circles}'

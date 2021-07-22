@@ -1,11 +1,11 @@
-#############################################
-###Instance Generator for BRKGA algorithm ###
-#############################################
+'#############################################'
+'###Instance Generator for BRKGA algorithm ###'
+'#############################################'
 
 
-############################################################################################
-###-----------------------------Parâmetros globais do código-----------------------------###
-############################################################################################
+'############################################################################################'
+'###-----------------------------Parâmetros globais do código-----------------------------###'
+'############################################################################################'
 
 #Bibliotecas a ser importadas
 import pandas as pd
@@ -16,12 +16,15 @@ import matplotlib.pyplot as plt
 from scipy.optimize import fsolve
 import math
 
+#Set de uma seed em especifico
+random.seed(123)
+
 #diretorio onde queremos colocar as instancias
-PATHInstancia='/Users/LuisDias/Desktop/Doutoramento DEGI/A-Papers LUIS DIAS/3_paper/5 - Resultados/Tuning_BRKGA_Asset_GRID_Laplace_500_gen/data'
+PATHInstancia='/Users/LuisDias/Desktop/Doutoramento DEGI/A-Papers LUIS DIAS/3_paper/5 - Resultados/Final_BRKGA_version/data'
 
 #parametros do gerador de instancias
 NumeroInstancias = 1 #numero de instancias a gerar por cada classe de instancia (N[X])
-AssetNumberInstances = np.array([100]) #Lista do numero de ativos
+AssetNumberInstances = np.array([30,100]) #Lista do numero de ativos
 TimeWindow = np.array([5,10]) #Lista de Planning horizons
 MaintenanceTypes = 3 #Tipos de manutenção a considerar
 AssetMaxHealth = 100 #Condição máxima dos ativos
@@ -35,7 +38,6 @@ Penalty_multiplier = [["LowRisk",2],["HighRisk",10]] #Relação de proporcionali
 
 #Distribuicao do RUL
 InstanceFamily = ["Clustered", "Concentrated", "Random"] #Caracterista da distribuição da condição inicial dos ativos
-#InstanceFamily = ["Random"] #Caracterista da distribuição da condição inicial dos ativos
 ClusteredAssetsPortion = 0.5 #Indica a proporção de ativos que se encontram no cluster de má condição
 MinimumInitialConditionMultiplier = 0.10 #Condição mínima que é gerada para cada ativo (em proporção face a condição máxima)
 GoodConditionMultiplier = 0.70 #Condição mínima que é gerada para cada ativo para ser considerado como um ativo em boa condição (em proporção face a condição máxima)
