@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 import imageio
 
 #Nome da pasta que guarda os resultados
-ResultsFolder = 'Testes_resultados_500_gen'
+ResultsFolder = 'resultados_Final_BRKGA_version'
 
 #diretorio onde queremos ler os resultados
 PATHInstancia = f'/Users/LuisDias/Desktop/{ResultsFolder}/BRKGA_cplex/'
@@ -29,7 +29,7 @@ PATH_results = f'/Users/LuisDias/Desktop/{ResultsFolder}/'
 InstanceFamily = ["Clustered", "Concentrated", "Random"]
 
 #Caracteristicas das instancias a analisar nos resultados
-CharacteristicList = ['Clustered','Concentrated','Random','N20', 'N100','TW5','TW10','HighUnc','LowUnc','HighRisk','LowRisk','HighImp','LowImp']
+CharacteristicList = ['Clustered','Concentrated','Random','N30', 'N100','TW5','TW10','HighUnc','LowUnc','HighRisk','LowRisk','HighImp','LowImp']
 ColumnNames = ['Instance_type','Instance_type','Instance_type','Portfolio_size','Portfolio_size','Planning_horizon','Planning_horizon'
     ,'Uncertainty_level','Uncertainty_level','Risk_level','Risk_level','Maintenance_level','Maintenance_level']
 
@@ -40,8 +40,8 @@ Solution_Parameters_ColumnNames = ['Solution_size_factor','Solution_size_factor'
                                    'Solution_Mutant_proportion','Solution_Mutant_proportion','Solution_Mutant_proportion',
                                    'Solution_Inheritance_probability','Solution_Inheritance_probability','Solution_Inheritance_probability']
 
-Scenario_Parameters_CharacteristicList = ['Pe10','Pe17','Pe25','Pm10','Pm20','Pm30','rh50','rh65','rh80']
-Scenario_Parameters_ColumnNames = ['Scenario_Elite_proportion','Scenario_Elite_proportion','Scenario_Elite_proportion',
+Scenario_Parameters_CharacteristicList = ['Pe10','Pe17','Pe25','Pe50','Pm10','Pm20','Pm30','rh50','rh65','rh80']
+Scenario_Parameters_ColumnNames = ['Scenario_Elite_proportion','Scenario_Elite_proportion','Scenario_Elite_proportion', 'Scenario_Elite_proportion',
                                    'Scenario_Mutant_proportion','Scenario_Mutant_proportion','Scenario_Mutant_proportion',
                                    'Scenario_Inheritance_probability','Scenario_Inheritance_probability','Scenario_Inheritance_probability']
 
@@ -80,90 +80,90 @@ def get_instance_characteristics(data, CharacteristicList, ColumnNames, Referenc
 #plot_results - Valor 'True' caso queiramos ver os resultados de uma forma gráfica.
 def calculate_dispersion(PATHInstancia, PATH_scenario_diversity_filename, FamilyType, generation, plot_results = False):
 
-    try:
-        #Ler os dados
-        scenario_diversity_data = pd.read_csv(PATHInstancia + PATH_scenario_diversity_filename, sep='\t')
+    #try:
+    #Ler os dados
+    scenario_diversity_data = pd.read_csv(PATHInstancia + PATH_scenario_diversity_filename, sep='\t')
 
-        #Filtrar o tipo de instancia
-        scenario_diversity_data = scenario_diversity_data[scenario_diversity_data['Instance'].str.contains(FamilyType)]
+    #Filtrar o tipo de instancia
+    scenario_diversity_data = scenario_diversity_data[scenario_diversity_data['Instance'].str.contains(FamilyType)]
 
-        #Converter as colunas numéricas para o formato correto
-        scenario_diversity_data['Generation'] = pd.to_numeric(scenario_diversity_data['Generation'], errors='coerce')
-        scenario_diversity_data['Best_Solution_Value'] = pd.to_numeric(scenario_diversity_data['Best_Solution_Value'], errors='coerce')
-        scenario_diversity_data['Worst_Solution_Value'] = pd.to_numeric(scenario_diversity_data['Worst_Solution_Value'], errors='coerce')
+    #Converter as colunas numéricas para o formato correto
+    scenario_diversity_data['Generation'] = pd.to_numeric(scenario_diversity_data['Generation'], errors='coerce')
+    scenario_diversity_data['Best_Solution_Value'] = pd.to_numeric(scenario_diversity_data['Best_Solution_Value'], errors='coerce')
+    scenario_diversity_data['Worst_Solution_Value'] = pd.to_numeric(scenario_diversity_data['Worst_Solution_Value'], errors='coerce')
 
-        #Dados da primeira geração
-        scenario_diversity_data = scenario_diversity_data.loc[(scenario_diversity_data.Generation == generation)].reset_index(drop=True)
-        NumberScenarios = scenario_diversity_data.shape[0]
-        GridSize = int(NumberScenarios * 0.8)
+    #Dados da primeira geração
+    scenario_diversity_data = scenario_diversity_data.loc[(scenario_diversity_data.Generation == generation)].reset_index(drop=True)
+    NumberScenarios = scenario_diversity_data.shape[0]
+    GridSize = int(NumberScenarios * 0.8)
 
-        #Calcular dispersão ideal para a primeira geração
-        delta_x = (scenario_diversity_data['Best_Solution_Value'].max() - scenario_diversity_data['Best_Solution_Value'].min())/GridSize#delta ideal no eixo dos x
-        delta_y = (scenario_diversity_data['Worst_Solution_Value'].max() - scenario_diversity_data['Worst_Solution_Value'].min())/GridSize#delta ideal no eixo dos y
+    #Calcular dispersão ideal para a primeira geração
+    delta_x = (scenario_diversity_data['Best_Solution_Value'].max() - scenario_diversity_data['Best_Solution_Value'].min())/GridSize#delta ideal no eixo dos x
+    delta_y = (scenario_diversity_data['Worst_Solution_Value'].max() - scenario_diversity_data['Worst_Solution_Value'].min())/GridSize#delta ideal no eixo dos y
 
-        #Criar a grelha que irá permitir verificar a localização dos pontos
-        x_axis_grid_coordinates = np.arange(scenario_diversity_data['Best_Solution_Value'].min()-delta_x,scenario_diversity_data['Best_Solution_Value'].max()+delta_x,delta_x)
-        y_axis_grid_coordinates = np.arange(scenario_diversity_data['Worst_Solution_Value'].min()-delta_y,scenario_diversity_data['Worst_Solution_Value'].max()+delta_y,delta_y)
+    #Criar a grelha que irá permitir verificar a localização dos pontos
+    x_axis_grid_coordinates = np.arange(scenario_diversity_data['Best_Solution_Value'].min()-delta_x,scenario_diversity_data['Best_Solution_Value'].max()+delta_x,delta_x)
+    y_axis_grid_coordinates = np.arange(scenario_diversity_data['Worst_Solution_Value'].min()-delta_y,scenario_diversity_data['Worst_Solution_Value'].max()+delta_y,delta_y)
 
-        #Calcular a dispersão na grelha
-        result_grid = np.zeros(GridSize**2)
-        counter = 0
-        for y in range(1,GridSize):
-            for x in range(1,GridSize):
-                for v in range(0,NumberScenarios):
-                    if (scenario_diversity_data['Best_Solution_Value'][v] >= x_axis_grid_coordinates[x-1]) & (scenario_diversity_data['Best_Solution_Value'][v] < x_axis_grid_coordinates[x]):
-                        if (scenario_diversity_data['Worst_Solution_Value'][v] >= y_axis_grid_coordinates[y-1]) & (scenario_diversity_data['Worst_Solution_Value'][v] < y_axis_grid_coordinates[y]):
-                            result_grid[counter] = result_grid[counter] + 1
-                #atualizar o counter
-                counter += 1
+    #Calcular a dispersão na grelha
+    result_grid = np.zeros(GridSize**2)
+    counter = 0
+    for y in range(1,GridSize):
+        for x in range(1,GridSize):
+            for v in range(0,NumberScenarios):
+                if (scenario_diversity_data['Best_Solution_Value'][v] >= x_axis_grid_coordinates[x-1]) & (scenario_diversity_data['Best_Solution_Value'][v] < x_axis_grid_coordinates[x]):
+                    if (scenario_diversity_data['Worst_Solution_Value'][v] >= y_axis_grid_coordinates[y-1]) & (scenario_diversity_data['Worst_Solution_Value'][v] < y_axis_grid_coordinates[y]):
+                        result_grid[counter] = result_grid[counter] + 1
+            #atualizar o counter
+            counter += 1
 
-        #Calcular o número de pontos que estão dentro de circunferências (basicamente têm uma distância euclideana ao ponto mais próximo inferior à diagonal do quadrado da grelha)
-        distance_limit = np.sqrt(delta_x**2+delta_y**2)
-        number_of_conquered_circles = 0
-        for point in range(0,NumberScenarios-1):
-            for v in range(point+1,NumberScenarios):
-                euclidean_distance= np.sqrt((scenario_diversity_data['Best_Solution_Value'][point]-scenario_diversity_data['Best_Solution_Value'][v])**2
-                                            +(scenario_diversity_data['Worst_Solution_Value'][point]-scenario_diversity_data['Worst_Solution_Value'][v])**2)
-                if euclidean_distance < distance_limit:
-                    number_of_conquered_circles += 1
+    #Calcular o número de pontos que estão dentro de circunferências (basicamente têm uma distância euclideana ao ponto mais próximo inferior à diagonal do quadrado da grelha)
+    distance_limit = np.sqrt(delta_x**2+delta_y**2)
+    number_of_conquered_circles = 0
+    for point in range(0,NumberScenarios-1):
+        for v in range(point+1,NumberScenarios):
+            euclidean_distance= np.sqrt((scenario_diversity_data['Best_Solution_Value'][point]-scenario_diversity_data['Best_Solution_Value'][v])**2
+                                        +(scenario_diversity_data['Worst_Solution_Value'][point]-scenario_diversity_data['Worst_Solution_Value'][v])**2)
+            if euclidean_distance < distance_limit:
+                number_of_conquered_circles += 1
 
 
-        #Scale dos valores com base no máximo e no mínimo
-        std_scenario_diversity_data = scenario_diversity_data.copy()
-        WorstValue = np.array([std_scenario_diversity_data['Worst_Solution_Value'].max()]*NumberScenarios)
-        BestValue = np.array([std_scenario_diversity_data['Best_Solution_Value'].min()]*NumberScenarios)
-        #std_scenario_diversity_data['Worst_Solution_Value'] = (np.array(scenario_diversity_data['Worst_Solution_Value'])-BestValue)/(WorstValue-BestValue)
-        std_scenario_diversity_data['Worst_Solution_Value'] = np.array(scenario_diversity_data['Worst_Solution_Value'])
-        #std_scenario_diversity_data['Best_Solution_Value'] = (np.array(scenario_diversity_data['Best_Solution_Value'])-BestValue)/(WorstValue-BestValue)
-        std_scenario_diversity_data['Best_Solution_Value'] = np.array(scenario_diversity_data['Best_Solution_Value'])
+    #Scale dos valores com base no máximo e no mínimo
+    std_scenario_diversity_data = scenario_diversity_data.copy()
+    WorstValue = np.array([std_scenario_diversity_data['Worst_Solution_Value'].max()]*NumberScenarios)
+    BestValue = np.array([std_scenario_diversity_data['Best_Solution_Value'].min()]*NumberScenarios)
+    std_scenario_diversity_data['Worst_Solution_Value'] = (np.array(scenario_diversity_data['Worst_Solution_Value'])-BestValue)/(WorstValue-BestValue)
+    #std_scenario_diversity_data['Worst_Solution_Value'] = np.array(scenario_diversity_data['Worst_Solution_Value'])
+    std_scenario_diversity_data['Best_Solution_Value'] = (np.array(scenario_diversity_data['Best_Solution_Value'])-BestValue)/(WorstValue-BestValue)
+    #std_scenario_diversity_data['Best_Solution_Value'] = np.array(scenario_diversity_data['Best_Solution_Value'])
 
-        #Calcular a variância das distâncias ao ponto mais perto
-        result_std = np.zeros(NumberScenarios-1)
-        std_scenario_diversity_data = std_scenario_diversity_data.sort_values(by=['Best_Solution_Value']).reset_index(drop=True)
-        for v in range(0,NumberScenarios-1):
-            result_std[v] = np.sqrt((std_scenario_diversity_data['Best_Solution_Value'][v]-std_scenario_diversity_data['Best_Solution_Value'][v+1])**2
-                                    +(std_scenario_diversity_data['Worst_Solution_Value'][v]-std_scenario_diversity_data['Worst_Solution_Value'][v+1])**2)
+    #Calcular a variância das distâncias ao ponto mais perto
+    result_std = np.zeros(NumberScenarios-1)
+    std_scenario_diversity_data = std_scenario_diversity_data.sort_values(by=['Best_Solution_Value']).reset_index(drop=True)
+    for v in range(0,NumberScenarios-1):
+        result_std[v] = np.sqrt((std_scenario_diversity_data['Best_Solution_Value'][v]-std_scenario_diversity_data['Best_Solution_Value'][v+1])**2
+                                +(std_scenario_diversity_data['Worst_Solution_Value'][v]-std_scenario_diversity_data['Worst_Solution_Value'][v+1])**2)
 
-        #Calcular dispersão com base na grelha (o número máxixo é igual ao número de cenários menos os dois extremos que são criados)
-        number_of_conquered_squares = len(result_grid[result_grid>0])
-        distance_square_root = round(result_std.var(),4)
+    #Calcular dispersão com base na grelha (o número máxixo é igual ao número de cenários menos os dois extremos que são criados)
+    number_of_conquered_squares = len(result_grid[result_grid>0])
+    distance_square_root = round(result_std.std(),4)
 
-        #Construção do plot com os quadrados
-        Plot_title = f'points={number_of_conquered_squares} | std={distance_square_root}  | Overlaped_circles={number_of_conquered_circles}'
-        if plot_results == True:
-            plt.figure()
-            fig = plt.figure()
-            ax = fig.gca()
-            ax.set(xlabel='Best Solution', ylabel='Worst Solution',title=f'{Plot_title}')
-            ax.set_xlim(xmin=x_axis_grid_coordinates.min(),xmax=x_axis_grid_coordinates.max())
-            ax.set_ylim(ymin=y_axis_grid_coordinates.min(),ymax=y_axis_grid_coordinates.max())
-            ax.set_xticks(x_axis_grid_coordinates)
-            ax.set_yticks(y_axis_grid_coordinates)
-            plt.plot(scenario_diversity_data['Best_Solution_Value'], scenario_diversity_data['Worst_Solution_Value'], 'ro')
-            plt.grid()
-            plt.show()
-    except:
-        number_of_conquered_squares,distance_square_root, number_of_conquered_circles = '-','-','-'
+    #Construção do plot com os quadrados
+    Plot_title = f'points={number_of_conquered_squares} | std={distance_square_root}  | Overlaped_circles={number_of_conquered_circles}'
+    if plot_results == True:
+        plt.figure()
+        fig = plt.figure()
+        ax = fig.gca()
+        ax.set(xlabel='Best Solution', ylabel='Worst Solution',title=f'{Plot_title}')
+        ax.set_xlim(xmin=x_axis_grid_coordinates.min(),xmax=x_axis_grid_coordinates.max())
+        ax.set_ylim(ymin=y_axis_grid_coordinates.min(),ymax=y_axis_grid_coordinates.max())
+        ax.set_xticks(x_axis_grid_coordinates)
+        ax.set_yticks(y_axis_grid_coordinates)
+        plt.plot(scenario_diversity_data['Best_Solution_Value'], scenario_diversity_data['Worst_Solution_Value'], 'ro')
+        plt.grid()
+        plt.show()
+    #except:
+     #   number_of_conquered_squares,distance_square_root, number_of_conquered_circles = '-','-','-'
 
     return number_of_conquered_squares,distance_square_root, number_of_conquered_circles
 

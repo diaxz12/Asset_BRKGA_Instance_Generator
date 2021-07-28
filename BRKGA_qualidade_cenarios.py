@@ -10,9 +10,9 @@ from BRKGA_utils import *
 
 #Testes de funções
 File_list_diversity =  [f for f in File_list if 'scenario_diversity_sol' in f]
-number_of_conquered_squares,distance_square_root, number_of_conquered_circles = calculate_dispersion(PATHInstancia, File_list_diversity[3], 'Clustered', 1, True)
-number_of_conquered_squares,distance_square_root, number_of_conquered_circles = calculate_dispersion(PATHInstancia, File_list_diversity[3], 'Clustered', 500, True)
-ScenarioDiversityPlot(PATHInstancia, 'instance_name', File_list_diversity[0], 'Clustered')
+#number_of_conquered_squares,distance_square_root, number_of_conquered_circles = calculate_dispersion(PATHInstancia, File_list_diversity[3], 'Random', 1, True)
+#number_of_conquered_squares,distance_square_root, number_of_conquered_circles = calculate_dispersion(PATHInstancia, File_list_diversity[3], 'Random', 500, True)
+ScenarioDiversityPlot(PATHInstancia, 'instance_name', File_list_diversity[1], 'Random')
 # number_of_conquered_squares,distance_square_root, number_of_conquered_circles = calculate_dispersion(PATHInstancia, 'R0H0E0_N100TW5_HighUncHighRiskLowImp_scenario_diversity_sol_A5_Pe25_Pm10_rh80_scen_Pe25_Pm30_rh80.csv', 'Clustered', 999, True)
 
 
@@ -59,7 +59,7 @@ ScenarioDiversityPlot(PATHInstancia, 'instance_name', File_list_diversity[0], 'C
 File_list_diversity_iteration = [f for f in File_list if 'scenario_diversity_iteration' in f]
 
 #Calcular a dispersao dos cenários
-export_results = True
+export_results = False
 for file in File_list_diversity_iteration:
     Generations = 999
     Distance_results = pd.DataFrame({
@@ -71,8 +71,8 @@ for file in File_list_diversity_iteration:
     })
     for gen in range(1,Generations):
         try:
-            Distance_results['Squares'][gen],Distance_results['Std'][gen],Distance_results['Circles'][gen] = calculate_dispersion(PATHInstancia, file, 'Clustered', gen)
-            Distance_results['Extremes'][gen] = meaure_extremes(PATHInstancia, file, 'Clustered', gen)
+            Distance_results['Squares'][gen],Distance_results['Std'][gen],Distance_results['Circles'][gen] = calculate_dispersion(PATHInstancia, file, 'Concentrated', gen)
+            Distance_results['Extremes'][gen] = meaure_extremes(PATHInstancia, file, 'Concentrated', gen)
             Distance_results['Generation'][gen] = gen
             export_results = True
         except:
@@ -88,6 +88,6 @@ for file in File_list_diversity_iteration:
 
 
 # #Gif plot (o path tem que se alterar)
-# imageio.mimsave('./Results_example/test_3.gif', [build_gif_diversity_plot(PATHInstancia, File_list_diversity_iteration[0], 'Random',gen) for gen in range(1,500)], fps=2)
+imageio.mimsave('./Results_example/test_3.gif', [build_gif_diversity_plot(PATHInstancia, File_list_diversity_iteration[1], 'Random',gen) for gen in range(1,100)], fps=2)
 
 

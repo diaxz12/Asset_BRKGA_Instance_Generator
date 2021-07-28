@@ -12,7 +12,7 @@ import numpy as np
 from os import path
 
 #Nome da pasta que guarda as instancias
-InstancesFolder = 'Final_BRKGA_version'
+InstancesFolder = 'Final_BRKGA_version_grid_single_core'
 
 #diretorio onde queremos colocar as instancias
 PATHJobs=f'/Users/LuisDias/Desktop/Doutoramento DEGI/A-Papers LUIS DIAS/3_paper/5 - Resultados/{InstancesFolder}/Job_scripts'
@@ -20,12 +20,12 @@ PATHJobs=f'/Users/LuisDias/Desktop/Doutoramento DEGI/A-Papers LUIS DIAS/3_paper/
 #parametros do gerador de jobs
 Numero_testes = 20 #numero de instancias que vamos utilizar para os testes no grid
 NumeroInstancias = 1 #numero de instancias a gerar por cada classe de instancia (N[X])
-AssetNumberInstances=np.array([30,100]) #Lista do numero de ativos
+AssetNumberInstances=np.array([30]) #Lista do numero de ativos
 TimeWindow = np.array([5,10]) #Lista de Planning horizons
-TimeLimit = 48 #Tempo limite que o job pode ser executado no grid (em Horas)
-NumberOfThreads = 4 #Número de CPU cores por job
+TimeLimit = 24 #Tempo limite que o job pode ser executado no grid (em Horas)
+NumberOfThreads = 1 #Número de CPU cores por job
 ComputerPartition = 'batch' #Partição de computadores do grid onde irá correr o job ('batch ou big)
-ComputerRAM = 8 #Tamanho da RAM que cada job tem disponível
+ComputerRAM = 4 #Tamanho da RAM que cada job tem disponível
 GridFolderPATH = f'/homes/up201202787/{InstancesFolder}' #PATH da pasta no grid que incorpora as diferentes combinações
 BRKGAGenerations = 500 #Number of generations to run the BRKGA algorithm
 BRKGAScenarios = 20 #Number of generated scenarios per generation
